@@ -1,0 +1,1799 @@
+State 135 conflicts: 9 reduce/reduce
+State 136 conflicts: 9 reduce/reduce
+
+
+Grammar
+
+    0 $accept: program $end
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON opt_declarations TOK_BEGIN opt_instructions TOK_END TOK_DOT
+
+    2 opt_declarations: declarations
+    3                 | %empty
+
+    4 declarations: declaration
+    5             | declaration declarations
+
+    6 declaration: constdecl
+    7            | vardecl
+    8            | typedecl
+
+    9 constdecl: TOK_CONST constdefn_list
+
+   10 constdefn_list: constdefn
+   11               | constdefn constdefn_list
+
+   12 constdefn: TOK_IDENT TOK_EQUALS expression TOK_SEMICOLON
+
+   13 vardecl: TOK_VAR vardefn_list
+
+   14 vardefn_list: vardefn
+   15             | vardefn vardefn_list
+
+   16 vardefn: identifier_list TOK_COLON type TOK_SEMICOLON
+
+   17 identifier_list: TOK_IDENT
+   18                | TOK_IDENT TOK_COMMA identifier_list
+
+   19 typedecl: TOK_TYPE typedefn_list
+
+   20 typedefn_list: typedefn
+   21              | typedefn typedefn_list
+
+   22 typedefn: TOK_IDENT TOK_EQUALS type TOK_SEMICOLON
+
+   23 type: TOK_IDENT
+   24     | TOK_ARRAY expression TOK_OF type
+   25     | TOK_RECORD vardefn_list TOK_END
+
+   26 expression_list: expression
+   27                | expression expression_list
+
+   28 expression: expression TOK_PLUS term
+   29           | expression TOK_MINUS term
+   30           | term
+
+   31 term: term TOK_TIMES factor
+   32     | term TOK_DIV factor
+   33     | term TOK_MOD factor
+   34     | factor
+
+   35 factor: TOK_MINUS factor
+   36       | TOK_PLUS factor
+   37       | primary
+
+   38 primary: TOK_INT_LITERAL
+   39        | designator
+   40        | TOK_LPAREN expression TOK_RPAREN
+
+   41 opt_instructions: instructions
+   42                 | %empty
+
+   43 instructions: instruction
+   44             | instruction instructions
+
+   45 instruction: assignstmt TOK_SEMICOLON
+   46            | ifstmt TOK_SEMICOLON
+   47            | repeatstmt TOK_SEMICOLON
+   48            | whilestmt TOK_SEMICOLON
+   49            | readstmt TOK_SEMICOLON
+   50            | writestmt TOK_SEMICOLON
+
+   51 assignstmt: designator TOK_ASSIGN expression
+
+   52 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_END
+   53       | TOK_IF condition TOK_THEN opt_instructions TOK_ELSE opt_instructions TOK_END
+
+   54 repeatstmt: TOK_REPEAT opt_instructions TOK_UNTIL condition TOK_END
+
+   55 whilestmt: TOK_WHILE condition TOK_DO opt_instructions TOK_END
+
+   56 writestmt: TOK_WRITE expression
+
+   57 readstmt: TOK_READ designator
+
+   58 condition: expression TOK_LT expression
+   59          | expression TOK_LTE expression
+   60          | expression TOK_GT expression
+   61          | expression TOK_GTE expression
+   62          | expression TOK_EQUALS expression
+   63          | expression TOK_HASH expression
+
+   64 designator: TOK_IDENT
+   65           | designator TOK_LBRACKET expression_list TOK_RBRACKET
+   66           | designator TOK_DOT TOK_IDENT
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    error (256)
+    TOK_IDENT <node> (258) 1 12 17 18 22 23 64 66
+    TOK_INT_LITERAL <node> (259) 38
+    TOK_PROGRAM <node> (260) 1
+    TOK_BEGIN <node> (261) 1
+    TOK_END <node> (262) 1 25 52 53 54 55
+    TOK_CONST <node> (263) 9
+    TOK_TYPE <node> (264) 19
+    TOK_VAR <node> (265) 13
+    TOK_ARRAY <node> (266) 24
+    TOK_OF <node> (267) 24
+    TOK_RECORD <node> (268) 25
+    TOK_DIV <node> (269) 32
+    TOK_MOD <node> (270) 33
+    TOK_IF <node> (271) 52 53
+    TOK_THEN <node> (272) 52 53
+    TOK_ELSE <node> (273) 53
+    TOK_REPEAT <node> (274) 54
+    TOK_UNTIL <node> (275) 54
+    TOK_WHILE <node> (276) 55
+    TOK_DO <node> (277) 55
+    TOK_READ <node> (278) 57
+    TOK_WRITE <node> (279) 56
+    TOK_ASSIGN <node> (280) 51
+    TOK_SEMICOLON <node> (281) 1 12 16 22 45 46 47 48 49 50
+    TOK_EQUALS <node> (282) 12 22 62
+    TOK_COLON <node> (283) 16
+    TOK_PLUS <node> (284) 28 36
+    TOK_MINUS <node> (285) 29 35
+    TOK_TIMES <node> (286) 31
+    TOK_HASH <node> (287) 63
+    TOK_LT <node> (288) 58
+    TOK_GT <node> (289) 60
+    TOK_LTE <node> (290) 59
+    TOK_GTE <node> (291) 61
+    TOK_LPAREN <node> (292) 40
+    TOK_RPAREN <node> (293) 40
+    TOK_LBRACKET <node> (294) 65
+    TOK_RBRACKET <node> (295) 65
+    TOK_DOT <node> (296) 1 66
+    TOK_COMMA <node> (297) 18
+    UMINUS (298)
+
+
+Nonterminals, with rules where they appear
+
+    $accept (44)
+        on left: 0
+    program <node> (45)
+        on left: 1
+        on right: 0
+    opt_declarations <node> (46)
+        on left: 2 3
+        on right: 1
+    declarations <node> (47)
+        on left: 4 5
+        on right: 2 5
+    declaration <node> (48)
+        on left: 6 7 8
+        on right: 4 5
+    constdecl <node> (49)
+        on left: 9
+        on right: 6
+    constdefn_list <node> (50)
+        on left: 10 11
+        on right: 9 11
+    constdefn <node> (51)
+        on left: 12
+        on right: 10 11
+    vardecl <node> (52)
+        on left: 13
+        on right: 7
+    vardefn_list <node> (53)
+        on left: 14 15
+        on right: 13 15 25
+    vardefn <node> (54)
+        on left: 16
+        on right: 14 15
+    identifier_list <node> (55)
+        on left: 17 18
+        on right: 16 18
+    typedecl <node> (56)
+        on left: 19
+        on right: 8
+    typedefn_list <node> (57)
+        on left: 20 21
+        on right: 19 21
+    typedefn <node> (58)
+        on left: 22
+        on right: 20 21
+    type <node> (59)
+        on left: 23 24 25
+        on right: 16 22 24
+    expression_list <node> (60)
+        on left: 26 27
+        on right: 27 65
+    expression <node> (61)
+        on left: 28 29 30
+        on right: 12 24 26 27 28 29 40 51 56 58 59 60 61 62 63
+    term <node> (62)
+        on left: 31 32 33 34
+        on right: 28 29 30 31 32 33
+    factor <node> (63)
+        on left: 35 36 37
+        on right: 31 32 33 34 35 36
+    primary <node> (64)
+        on left: 38 39 40
+        on right: 37
+    opt_instructions <node> (65)
+        on left: 41 42
+        on right: 1 52 53 54 55
+    instructions <node> (66)
+        on left: 43 44
+        on right: 41 44
+    instruction <node> (67)
+        on left: 45 46 47 48 49 50
+        on right: 43 44
+    assignstmt <node> (68)
+        on left: 51
+        on right: 45
+    ifstmt <node> (69)
+        on left: 52 53
+        on right: 46
+    repeatstmt <node> (70)
+        on left: 54
+        on right: 47
+    whilestmt <node> (71)
+        on left: 55
+        on right: 48
+    writestmt <node> (72)
+        on left: 56
+        on right: 50
+    readstmt <node> (73)
+        on left: 57
+        on right: 49
+    condition <node> (74)
+        on left: 58 59 60 61 62 63
+        on right: 52 53 54 55
+    designator <node> (75)
+        on left: 64 65 66
+        on right: 39 51 57 65 66
+
+
+State 0
+
+    0 $accept: . program $end
+
+    TOK_PROGRAM  shift, and go to state 1
+
+    program  go to state 2
+
+
+State 1
+
+    1 program: TOK_PROGRAM . TOK_IDENT TOK_SEMICOLON opt_declarations TOK_BEGIN opt_instructions TOK_END TOK_DOT
+
+    TOK_IDENT  shift, and go to state 3
+
+
+State 2
+
+    0 $accept: program . $end
+
+    $end  shift, and go to state 4
+
+
+State 3
+
+    1 program: TOK_PROGRAM TOK_IDENT . TOK_SEMICOLON opt_declarations TOK_BEGIN opt_instructions TOK_END TOK_DOT
+
+    TOK_SEMICOLON  shift, and go to state 5
+
+
+State 4
+
+    0 $accept: program $end .
+
+    $default  accept
+
+
+State 5
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON . opt_declarations TOK_BEGIN opt_instructions TOK_END TOK_DOT
+
+    TOK_CONST  shift, and go to state 6
+    TOK_TYPE   shift, and go to state 7
+    TOK_VAR    shift, and go to state 8
+
+    $default  reduce using rule 3 (opt_declarations)
+
+    opt_declarations  go to state 9
+    declarations      go to state 10
+    declaration       go to state 11
+    constdecl         go to state 12
+    vardecl           go to state 13
+    typedecl          go to state 14
+
+
+State 6
+
+    9 constdecl: TOK_CONST . constdefn_list
+
+    TOK_IDENT  shift, and go to state 15
+
+    constdefn_list  go to state 16
+    constdefn       go to state 17
+
+
+State 7
+
+   19 typedecl: TOK_TYPE . typedefn_list
+
+    TOK_IDENT  shift, and go to state 18
+
+    typedefn_list  go to state 19
+    typedefn       go to state 20
+
+
+State 8
+
+   13 vardecl: TOK_VAR . vardefn_list
+
+    TOK_IDENT  shift, and go to state 21
+
+    vardefn_list     go to state 22
+    vardefn          go to state 23
+    identifier_list  go to state 24
+
+
+State 9
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON opt_declarations . TOK_BEGIN opt_instructions TOK_END TOK_DOT
+
+    TOK_BEGIN  shift, and go to state 25
+
+
+State 10
+
+    2 opt_declarations: declarations .
+
+    $default  reduce using rule 2 (opt_declarations)
+
+
+State 11
+
+    4 declarations: declaration .
+    5             | declaration . declarations
+
+    TOK_CONST  shift, and go to state 6
+    TOK_TYPE   shift, and go to state 7
+    TOK_VAR    shift, and go to state 8
+
+    $default  reduce using rule 4 (declarations)
+
+    declarations  go to state 26
+    declaration   go to state 11
+    constdecl     go to state 12
+    vardecl       go to state 13
+    typedecl      go to state 14
+
+
+State 12
+
+    6 declaration: constdecl .
+
+    $default  reduce using rule 6 (declaration)
+
+
+State 13
+
+    7 declaration: vardecl .
+
+    $default  reduce using rule 7 (declaration)
+
+
+State 14
+
+    8 declaration: typedecl .
+
+    $default  reduce using rule 8 (declaration)
+
+
+State 15
+
+   12 constdefn: TOK_IDENT . TOK_EQUALS expression TOK_SEMICOLON
+
+    TOK_EQUALS  shift, and go to state 27
+
+
+State 16
+
+    9 constdecl: TOK_CONST constdefn_list .
+
+    $default  reduce using rule 9 (constdecl)
+
+
+State 17
+
+   10 constdefn_list: constdefn .
+   11               | constdefn . constdefn_list
+
+    TOK_IDENT  shift, and go to state 15
+
+    $default  reduce using rule 10 (constdefn_list)
+
+    constdefn_list  go to state 28
+    constdefn       go to state 17
+
+
+State 18
+
+   22 typedefn: TOK_IDENT . TOK_EQUALS type TOK_SEMICOLON
+
+    TOK_EQUALS  shift, and go to state 29
+
+
+State 19
+
+   19 typedecl: TOK_TYPE typedefn_list .
+
+    $default  reduce using rule 19 (typedecl)
+
+
+State 20
+
+   20 typedefn_list: typedefn .
+   21              | typedefn . typedefn_list
+
+    TOK_IDENT  shift, and go to state 18
+
+    $default  reduce using rule 20 (typedefn_list)
+
+    typedefn_list  go to state 30
+    typedefn       go to state 20
+
+
+State 21
+
+   17 identifier_list: TOK_IDENT .
+   18                | TOK_IDENT . TOK_COMMA identifier_list
+
+    TOK_COMMA  shift, and go to state 31
+
+    $default  reduce using rule 17 (identifier_list)
+
+
+State 22
+
+   13 vardecl: TOK_VAR vardefn_list .
+
+    $default  reduce using rule 13 (vardecl)
+
+
+State 23
+
+   14 vardefn_list: vardefn .
+   15             | vardefn . vardefn_list
+
+    TOK_IDENT  shift, and go to state 21
+
+    $default  reduce using rule 14 (vardefn_list)
+
+    vardefn_list     go to state 32
+    vardefn          go to state 23
+    identifier_list  go to state 24
+
+
+State 24
+
+   16 vardefn: identifier_list . TOK_COLON type TOK_SEMICOLON
+
+    TOK_COLON  shift, and go to state 33
+
+
+State 25
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON opt_declarations TOK_BEGIN . opt_instructions TOK_END TOK_DOT
+
+    TOK_IDENT   shift, and go to state 34
+    TOK_IF      shift, and go to state 35
+    TOK_REPEAT  shift, and go to state 36
+    TOK_WHILE   shift, and go to state 37
+    TOK_READ    shift, and go to state 38
+    TOK_WRITE   shift, and go to state 39
+
+    $default  reduce using rule 42 (opt_instructions)
+
+    opt_instructions  go to state 40
+    instructions      go to state 41
+    instruction       go to state 42
+    assignstmt        go to state 43
+    ifstmt            go to state 44
+    repeatstmt        go to state 45
+    whilestmt         go to state 46
+    writestmt         go to state 47
+    readstmt          go to state 48
+    designator        go to state 49
+
+
+State 26
+
+    5 declarations: declaration declarations .
+
+    $default  reduce using rule 5 (declarations)
+
+
+State 27
+
+   12 constdefn: TOK_IDENT TOK_EQUALS . expression TOK_SEMICOLON
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 54
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 28
+
+   11 constdefn_list: constdefn constdefn_list .
+
+    $default  reduce using rule 11 (constdefn_list)
+
+
+State 29
+
+   22 typedefn: TOK_IDENT TOK_EQUALS . type TOK_SEMICOLON
+
+    TOK_IDENT   shift, and go to state 59
+    TOK_ARRAY   shift, and go to state 60
+    TOK_RECORD  shift, and go to state 61
+
+    type  go to state 62
+
+
+State 30
+
+   21 typedefn_list: typedefn typedefn_list .
+
+    $default  reduce using rule 21 (typedefn_list)
+
+
+State 31
+
+   18 identifier_list: TOK_IDENT TOK_COMMA . identifier_list
+
+    TOK_IDENT  shift, and go to state 21
+
+    identifier_list  go to state 63
+
+
+State 32
+
+   15 vardefn_list: vardefn vardefn_list .
+
+    $default  reduce using rule 15 (vardefn_list)
+
+
+State 33
+
+   16 vardefn: identifier_list TOK_COLON . type TOK_SEMICOLON
+
+    TOK_IDENT   shift, and go to state 59
+    TOK_ARRAY   shift, and go to state 60
+    TOK_RECORD  shift, and go to state 61
+
+    type  go to state 64
+
+
+State 34
+
+   64 designator: TOK_IDENT .
+
+    $default  reduce using rule 64 (designator)
+
+
+State 35
+
+   52 ifstmt: TOK_IF . condition TOK_THEN opt_instructions TOK_END
+   53       | TOK_IF . condition TOK_THEN opt_instructions TOK_ELSE opt_instructions TOK_END
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 65
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    condition   go to state 66
+    designator  go to state 58
+
+
+State 36
+
+   54 repeatstmt: TOK_REPEAT . opt_instructions TOK_UNTIL condition TOK_END
+
+    TOK_IDENT   shift, and go to state 34
+    TOK_IF      shift, and go to state 35
+    TOK_REPEAT  shift, and go to state 36
+    TOK_WHILE   shift, and go to state 37
+    TOK_READ    shift, and go to state 38
+    TOK_WRITE   shift, and go to state 39
+
+    $default  reduce using rule 42 (opt_instructions)
+
+    opt_instructions  go to state 67
+    instructions      go to state 41
+    instruction       go to state 42
+    assignstmt        go to state 43
+    ifstmt            go to state 44
+    repeatstmt        go to state 45
+    whilestmt         go to state 46
+    writestmt         go to state 47
+    readstmt          go to state 48
+    designator        go to state 49
+
+
+State 37
+
+   55 whilestmt: TOK_WHILE . condition TOK_DO opt_instructions TOK_END
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 65
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    condition   go to state 68
+    designator  go to state 58
+
+
+State 38
+
+   57 readstmt: TOK_READ . designator
+
+    TOK_IDENT  shift, and go to state 34
+
+    designator  go to state 69
+
+
+State 39
+
+   56 writestmt: TOK_WRITE . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 70
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 40
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON opt_declarations TOK_BEGIN opt_instructions . TOK_END TOK_DOT
+
+    TOK_END  shift, and go to state 71
+
+
+State 41
+
+   41 opt_instructions: instructions .
+
+    $default  reduce using rule 41 (opt_instructions)
+
+
+State 42
+
+   43 instructions: instruction .
+   44             | instruction . instructions
+
+    TOK_IDENT   shift, and go to state 34
+    TOK_IF      shift, and go to state 35
+    TOK_REPEAT  shift, and go to state 36
+    TOK_WHILE   shift, and go to state 37
+    TOK_READ    shift, and go to state 38
+    TOK_WRITE   shift, and go to state 39
+
+    $default  reduce using rule 43 (instructions)
+
+    instructions  go to state 72
+    instruction   go to state 42
+    assignstmt    go to state 43
+    ifstmt        go to state 44
+    repeatstmt    go to state 45
+    whilestmt     go to state 46
+    writestmt     go to state 47
+    readstmt      go to state 48
+    designator    go to state 49
+
+
+State 43
+
+   45 instruction: assignstmt . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 73
+
+
+State 44
+
+   46 instruction: ifstmt . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 74
+
+
+State 45
+
+   47 instruction: repeatstmt . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 75
+
+
+State 46
+
+   48 instruction: whilestmt . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 76
+
+
+State 47
+
+   50 instruction: writestmt . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 77
+
+
+State 48
+
+   49 instruction: readstmt . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 78
+
+
+State 49
+
+   51 assignstmt: designator . TOK_ASSIGN expression
+   65 designator: designator . TOK_LBRACKET expression_list TOK_RBRACKET
+   66           | designator . TOK_DOT TOK_IDENT
+
+    TOK_ASSIGN    shift, and go to state 79
+    TOK_LBRACKET  shift, and go to state 80
+    TOK_DOT       shift, and go to state 81
+
+
+State 50
+
+   38 primary: TOK_INT_LITERAL .
+
+    $default  reduce using rule 38 (primary)
+
+
+State 51
+
+   36 factor: TOK_PLUS . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    factor      go to state 82
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 52
+
+   35 factor: TOK_MINUS . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    factor      go to state 83
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 53
+
+   40 primary: TOK_LPAREN . expression TOK_RPAREN
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 84
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 54
+
+   12 constdefn: TOK_IDENT TOK_EQUALS expression . TOK_SEMICOLON
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+
+    TOK_SEMICOLON  shift, and go to state 85
+    TOK_PLUS       shift, and go to state 86
+    TOK_MINUS      shift, and go to state 87
+
+
+State 55
+
+   30 expression: term .
+   31 term: term . TOK_TIMES factor
+   32     | term . TOK_DIV factor
+   33     | term . TOK_MOD factor
+
+    TOK_DIV    shift, and go to state 88
+    TOK_MOD    shift, and go to state 89
+    TOK_TIMES  shift, and go to state 90
+
+    $default  reduce using rule 30 (expression)
+
+
+State 56
+
+   34 term: factor .
+
+    $default  reduce using rule 34 (term)
+
+
+State 57
+
+   37 factor: primary .
+
+    $default  reduce using rule 37 (factor)
+
+
+State 58
+
+   39 primary: designator .
+   65 designator: designator . TOK_LBRACKET expression_list TOK_RBRACKET
+   66           | designator . TOK_DOT TOK_IDENT
+
+    TOK_LBRACKET  shift, and go to state 80
+    TOK_DOT       shift, and go to state 81
+
+    $default  reduce using rule 39 (primary)
+
+
+State 59
+
+   23 type: TOK_IDENT .
+
+    $default  reduce using rule 23 (type)
+
+
+State 60
+
+   24 type: TOK_ARRAY . expression TOK_OF type
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 91
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 61
+
+   25 type: TOK_RECORD . vardefn_list TOK_END
+
+    TOK_IDENT  shift, and go to state 21
+
+    vardefn_list     go to state 92
+    vardefn          go to state 23
+    identifier_list  go to state 24
+
+
+State 62
+
+   22 typedefn: TOK_IDENT TOK_EQUALS type . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 93
+
+
+State 63
+
+   18 identifier_list: TOK_IDENT TOK_COMMA identifier_list .
+
+    $default  reduce using rule 18 (identifier_list)
+
+
+State 64
+
+   16 vardefn: identifier_list TOK_COLON type . TOK_SEMICOLON
+
+    TOK_SEMICOLON  shift, and go to state 94
+
+
+State 65
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   58 condition: expression . TOK_LT expression
+   59          | expression . TOK_LTE expression
+   60          | expression . TOK_GT expression
+   61          | expression . TOK_GTE expression
+   62          | expression . TOK_EQUALS expression
+   63          | expression . TOK_HASH expression
+
+    TOK_EQUALS  shift, and go to state 95
+    TOK_PLUS    shift, and go to state 86
+    TOK_MINUS   shift, and go to state 87
+    TOK_HASH    shift, and go to state 96
+    TOK_LT      shift, and go to state 97
+    TOK_GT      shift, and go to state 98
+    TOK_LTE     shift, and go to state 99
+    TOK_GTE     shift, and go to state 100
+
+
+State 66
+
+   52 ifstmt: TOK_IF condition . TOK_THEN opt_instructions TOK_END
+   53       | TOK_IF condition . TOK_THEN opt_instructions TOK_ELSE opt_instructions TOK_END
+
+    TOK_THEN  shift, and go to state 101
+
+
+State 67
+
+   54 repeatstmt: TOK_REPEAT opt_instructions . TOK_UNTIL condition TOK_END
+
+    TOK_UNTIL  shift, and go to state 102
+
+
+State 68
+
+   55 whilestmt: TOK_WHILE condition . TOK_DO opt_instructions TOK_END
+
+    TOK_DO  shift, and go to state 103
+
+
+State 69
+
+   57 readstmt: TOK_READ designator .
+   65 designator: designator . TOK_LBRACKET expression_list TOK_RBRACKET
+   66           | designator . TOK_DOT TOK_IDENT
+
+    TOK_LBRACKET  shift, and go to state 80
+    TOK_DOT       shift, and go to state 81
+
+    $default  reduce using rule 57 (readstmt)
+
+
+State 70
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   56 writestmt: TOK_WRITE expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 56 (writestmt)
+
+
+State 71
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON opt_declarations TOK_BEGIN opt_instructions TOK_END . TOK_DOT
+
+    TOK_DOT  shift, and go to state 104
+
+
+State 72
+
+   44 instructions: instruction instructions .
+
+    $default  reduce using rule 44 (instructions)
+
+
+State 73
+
+   45 instruction: assignstmt TOK_SEMICOLON .
+
+    $default  reduce using rule 45 (instruction)
+
+
+State 74
+
+   46 instruction: ifstmt TOK_SEMICOLON .
+
+    $default  reduce using rule 46 (instruction)
+
+
+State 75
+
+   47 instruction: repeatstmt TOK_SEMICOLON .
+
+    $default  reduce using rule 47 (instruction)
+
+
+State 76
+
+   48 instruction: whilestmt TOK_SEMICOLON .
+
+    $default  reduce using rule 48 (instruction)
+
+
+State 77
+
+   50 instruction: writestmt TOK_SEMICOLON .
+
+    $default  reduce using rule 50 (instruction)
+
+
+State 78
+
+   49 instruction: readstmt TOK_SEMICOLON .
+
+    $default  reduce using rule 49 (instruction)
+
+
+State 79
+
+   51 assignstmt: designator TOK_ASSIGN . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 105
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 80
+
+   65 designator: designator TOK_LBRACKET . expression_list TOK_RBRACKET
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression_list  go to state 106
+    expression       go to state 107
+    term             go to state 55
+    factor           go to state 56
+    primary          go to state 57
+    designator       go to state 58
+
+
+State 81
+
+   66 designator: designator TOK_DOT . TOK_IDENT
+
+    TOK_IDENT  shift, and go to state 108
+
+
+State 82
+
+   36 factor: TOK_PLUS factor .
+
+    $default  reduce using rule 36 (factor)
+
+
+State 83
+
+   35 factor: TOK_MINUS factor .
+
+    $default  reduce using rule 35 (factor)
+
+
+State 84
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   40 primary: TOK_LPAREN expression . TOK_RPAREN
+
+    TOK_PLUS    shift, and go to state 86
+    TOK_MINUS   shift, and go to state 87
+    TOK_RPAREN  shift, and go to state 109
+
+
+State 85
+
+   12 constdefn: TOK_IDENT TOK_EQUALS expression TOK_SEMICOLON .
+
+    $default  reduce using rule 12 (constdefn)
+
+
+State 86
+
+   28 expression: expression TOK_PLUS . term
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    term        go to state 110
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 87
+
+   29 expression: expression TOK_MINUS . term
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    term        go to state 111
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 88
+
+   32 term: term TOK_DIV . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    factor      go to state 112
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 89
+
+   33 term: term TOK_MOD . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    factor      go to state 113
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 90
+
+   31 term: term TOK_TIMES . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    factor      go to state 114
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 91
+
+   24 type: TOK_ARRAY expression . TOK_OF type
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+
+    TOK_OF     shift, and go to state 115
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+
+State 92
+
+   25 type: TOK_RECORD vardefn_list . TOK_END
+
+    TOK_END  shift, and go to state 116
+
+
+State 93
+
+   22 typedefn: TOK_IDENT TOK_EQUALS type TOK_SEMICOLON .
+
+    $default  reduce using rule 22 (typedefn)
+
+
+State 94
+
+   16 vardefn: identifier_list TOK_COLON type TOK_SEMICOLON .
+
+    $default  reduce using rule 16 (vardefn)
+
+
+State 95
+
+   62 condition: expression TOK_EQUALS . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 117
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 96
+
+   63 condition: expression TOK_HASH . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 118
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 97
+
+   58 condition: expression TOK_LT . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 119
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 98
+
+   60 condition: expression TOK_GT . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 120
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 99
+
+   59 condition: expression TOK_LTE . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 121
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 100
+
+   61 condition: expression TOK_GTE . expression
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 122
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 101
+
+   52 ifstmt: TOK_IF condition TOK_THEN . opt_instructions TOK_END
+   53       | TOK_IF condition TOK_THEN . opt_instructions TOK_ELSE opt_instructions TOK_END
+
+    TOK_IDENT   shift, and go to state 34
+    TOK_IF      shift, and go to state 35
+    TOK_REPEAT  shift, and go to state 36
+    TOK_WHILE   shift, and go to state 37
+    TOK_READ    shift, and go to state 38
+    TOK_WRITE   shift, and go to state 39
+
+    $default  reduce using rule 42 (opt_instructions)
+
+    opt_instructions  go to state 123
+    instructions      go to state 41
+    instruction       go to state 42
+    assignstmt        go to state 43
+    ifstmt            go to state 44
+    repeatstmt        go to state 45
+    whilestmt         go to state 46
+    writestmt         go to state 47
+    readstmt          go to state 48
+    designator        go to state 49
+
+
+State 102
+
+   54 repeatstmt: TOK_REPEAT opt_instructions TOK_UNTIL . condition TOK_END
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    expression  go to state 65
+    term        go to state 55
+    factor      go to state 56
+    primary     go to state 57
+    condition   go to state 124
+    designator  go to state 58
+
+
+State 103
+
+   55 whilestmt: TOK_WHILE condition TOK_DO . opt_instructions TOK_END
+
+    TOK_IDENT   shift, and go to state 34
+    TOK_IF      shift, and go to state 35
+    TOK_REPEAT  shift, and go to state 36
+    TOK_WHILE   shift, and go to state 37
+    TOK_READ    shift, and go to state 38
+    TOK_WRITE   shift, and go to state 39
+
+    $default  reduce using rule 42 (opt_instructions)
+
+    opt_instructions  go to state 125
+    instructions      go to state 41
+    instruction       go to state 42
+    assignstmt        go to state 43
+    ifstmt            go to state 44
+    repeatstmt        go to state 45
+    whilestmt         go to state 46
+    writestmt         go to state 47
+    readstmt          go to state 48
+    designator        go to state 49
+
+
+State 104
+
+    1 program: TOK_PROGRAM TOK_IDENT TOK_SEMICOLON opt_declarations TOK_BEGIN opt_instructions TOK_END TOK_DOT .
+
+    $default  reduce using rule 1 (program)
+
+
+State 105
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   51 assignstmt: designator TOK_ASSIGN expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 51 (assignstmt)
+
+
+State 106
+
+   65 designator: designator TOK_LBRACKET expression_list . TOK_RBRACKET
+
+    TOK_RBRACKET  shift, and go to state 126
+
+
+State 107
+
+   26 expression_list: expression .
+   27                | expression . expression_list
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 127
+    TOK_MINUS        shift, and go to state 128
+    TOK_LPAREN       shift, and go to state 53
+
+    $default  reduce using rule 26 (expression_list)
+
+    expression_list  go to state 129
+    expression       go to state 107
+    term             go to state 55
+    factor           go to state 56
+    primary          go to state 57
+    designator       go to state 58
+
+
+State 108
+
+   66 designator: designator TOK_DOT TOK_IDENT .
+
+    $default  reduce using rule 66 (designator)
+
+
+State 109
+
+   40 primary: TOK_LPAREN expression TOK_RPAREN .
+
+    $default  reduce using rule 40 (primary)
+
+
+State 110
+
+   28 expression: expression TOK_PLUS term .
+   31 term: term . TOK_TIMES factor
+   32     | term . TOK_DIV factor
+   33     | term . TOK_MOD factor
+
+    TOK_DIV    shift, and go to state 88
+    TOK_MOD    shift, and go to state 89
+    TOK_TIMES  shift, and go to state 90
+
+    $default  reduce using rule 28 (expression)
+
+
+State 111
+
+   29 expression: expression TOK_MINUS term .
+   31 term: term . TOK_TIMES factor
+   32     | term . TOK_DIV factor
+   33     | term . TOK_MOD factor
+
+    TOK_DIV    shift, and go to state 88
+    TOK_MOD    shift, and go to state 89
+    TOK_TIMES  shift, and go to state 90
+
+    $default  reduce using rule 29 (expression)
+
+
+State 112
+
+   32 term: term TOK_DIV factor .
+
+    $default  reduce using rule 32 (term)
+
+
+State 113
+
+   33 term: term TOK_MOD factor .
+
+    $default  reduce using rule 33 (term)
+
+
+State 114
+
+   31 term: term TOK_TIMES factor .
+
+    $default  reduce using rule 31 (term)
+
+
+State 115
+
+   24 type: TOK_ARRAY expression TOK_OF . type
+
+    TOK_IDENT   shift, and go to state 59
+    TOK_ARRAY   shift, and go to state 60
+    TOK_RECORD  shift, and go to state 61
+
+    type  go to state 130
+
+
+State 116
+
+   25 type: TOK_RECORD vardefn_list TOK_END .
+
+    $default  reduce using rule 25 (type)
+
+
+State 117
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   62 condition: expression TOK_EQUALS expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 62 (condition)
+
+
+State 118
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   63 condition: expression TOK_HASH expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 63 (condition)
+
+
+State 119
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   58 condition: expression TOK_LT expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 58 (condition)
+
+
+State 120
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   60 condition: expression TOK_GT expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 60 (condition)
+
+
+State 121
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   59 condition: expression TOK_LTE expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 59 (condition)
+
+
+State 122
+
+   28 expression: expression . TOK_PLUS term
+   29           | expression . TOK_MINUS term
+   61 condition: expression TOK_GTE expression .
+
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+
+    $default  reduce using rule 61 (condition)
+
+
+State 123
+
+   52 ifstmt: TOK_IF condition TOK_THEN opt_instructions . TOK_END
+   53       | TOK_IF condition TOK_THEN opt_instructions . TOK_ELSE opt_instructions TOK_END
+
+    TOK_END   shift, and go to state 131
+    TOK_ELSE  shift, and go to state 132
+
+
+State 124
+
+   54 repeatstmt: TOK_REPEAT opt_instructions TOK_UNTIL condition . TOK_END
+
+    TOK_END  shift, and go to state 133
+
+
+State 125
+
+   55 whilestmt: TOK_WHILE condition TOK_DO opt_instructions . TOK_END
+
+    TOK_END  shift, and go to state 134
+
+
+State 126
+
+   65 designator: designator TOK_LBRACKET expression_list TOK_RBRACKET .
+
+    $default  reduce using rule 65 (designator)
+
+
+State 127
+
+   28 expression: expression TOK_PLUS . term
+   36 factor: TOK_PLUS . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    term        go to state 110
+    factor      go to state 135
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 128
+
+   29 expression: expression TOK_MINUS . term
+   35 factor: TOK_MINUS . factor
+
+    TOK_IDENT        shift, and go to state 34
+    TOK_INT_LITERAL  shift, and go to state 50
+    TOK_PLUS         shift, and go to state 51
+    TOK_MINUS        shift, and go to state 52
+    TOK_LPAREN       shift, and go to state 53
+
+    term        go to state 111
+    factor      go to state 136
+    primary     go to state 57
+    designator  go to state 58
+
+
+State 129
+
+   27 expression_list: expression expression_list .
+
+    $default  reduce using rule 27 (expression_list)
+
+
+State 130
+
+   24 type: TOK_ARRAY expression TOK_OF type .
+
+    $default  reduce using rule 24 (type)
+
+
+State 131
+
+   52 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_END .
+
+    $default  reduce using rule 52 (ifstmt)
+
+
+State 132
+
+   53 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_ELSE . opt_instructions TOK_END
+
+    TOK_IDENT   shift, and go to state 34
+    TOK_IF      shift, and go to state 35
+    TOK_REPEAT  shift, and go to state 36
+    TOK_WHILE   shift, and go to state 37
+    TOK_READ    shift, and go to state 38
+    TOK_WRITE   shift, and go to state 39
+
+    $default  reduce using rule 42 (opt_instructions)
+
+    opt_instructions  go to state 137
+    instructions      go to state 41
+    instruction       go to state 42
+    assignstmt        go to state 43
+    ifstmt            go to state 44
+    repeatstmt        go to state 45
+    whilestmt         go to state 46
+    writestmt         go to state 47
+    readstmt          go to state 48
+    designator        go to state 49
+
+
+State 133
+
+   54 repeatstmt: TOK_REPEAT opt_instructions TOK_UNTIL condition TOK_END .
+
+    $default  reduce using rule 54 (repeatstmt)
+
+
+State 134
+
+   55 whilestmt: TOK_WHILE condition TOK_DO opt_instructions TOK_END .
+
+    $default  reduce using rule 55 (whilestmt)
+
+
+State 135
+
+   34 term: factor .
+   36 factor: TOK_PLUS factor .
+
+    TOK_IDENT        reduce using rule 34 (term)
+    TOK_IDENT        [reduce using rule 36 (factor)]
+    TOK_INT_LITERAL  reduce using rule 34 (term)
+    TOK_INT_LITERAL  [reduce using rule 36 (factor)]
+    TOK_DIV          reduce using rule 34 (term)
+    TOK_DIV          [reduce using rule 36 (factor)]
+    TOK_MOD          reduce using rule 34 (term)
+    TOK_MOD          [reduce using rule 36 (factor)]
+    TOK_PLUS         reduce using rule 34 (term)
+    TOK_PLUS         [reduce using rule 36 (factor)]
+    TOK_MINUS        reduce using rule 34 (term)
+    TOK_MINUS        [reduce using rule 36 (factor)]
+    TOK_TIMES        reduce using rule 34 (term)
+    TOK_TIMES        [reduce using rule 36 (factor)]
+    TOK_LPAREN       reduce using rule 34 (term)
+    TOK_LPAREN       [reduce using rule 36 (factor)]
+    TOK_RBRACKET     reduce using rule 34 (term)
+    TOK_RBRACKET     [reduce using rule 36 (factor)]
+    $default         reduce using rule 34 (term)
+
+
+State 136
+
+   34 term: factor .
+   35 factor: TOK_MINUS factor .
+
+    TOK_IDENT        reduce using rule 34 (term)
+    TOK_IDENT        [reduce using rule 35 (factor)]
+    TOK_INT_LITERAL  reduce using rule 34 (term)
+    TOK_INT_LITERAL  [reduce using rule 35 (factor)]
+    TOK_DIV          reduce using rule 34 (term)
+    TOK_DIV          [reduce using rule 35 (factor)]
+    TOK_MOD          reduce using rule 34 (term)
+    TOK_MOD          [reduce using rule 35 (factor)]
+    TOK_PLUS         reduce using rule 34 (term)
+    TOK_PLUS         [reduce using rule 35 (factor)]
+    TOK_MINUS        reduce using rule 34 (term)
+    TOK_MINUS        [reduce using rule 35 (factor)]
+    TOK_TIMES        reduce using rule 34 (term)
+    TOK_TIMES        [reduce using rule 35 (factor)]
+    TOK_LPAREN       reduce using rule 34 (term)
+    TOK_LPAREN       [reduce using rule 35 (factor)]
+    TOK_RBRACKET     reduce using rule 34 (term)
+    TOK_RBRACKET     [reduce using rule 35 (factor)]
+    $default         reduce using rule 34 (term)
+
+
+State 137
+
+   53 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_ELSE opt_instructions . TOK_END
+
+    TOK_END  shift, and go to state 138
+
+
+State 138
+
+   53 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_ELSE opt_instructions TOK_END .
+
+    $default  reduce using rule 53 (ifstmt)

@@ -5,11 +5,9 @@
 #include "util.h"
 #include "cpputil.h"
 #include "node.h"
-/*
 #include "type.h"
 #include "symbol.h"
 #include "symtab.h"
-*/
 #include "ast.h"
 #include "astvisitor.h"
 #include "context.h"
@@ -23,7 +21,7 @@
 struct Context {
 private:
 	bool print_symbol_table = false;
-
+	Node* root;
 public:
 	Context(struct Node* ast);
 	~Context();
@@ -35,34 +33,12 @@ public:
 	// TODO: additional methods
 };
 
-struct Type {};
-
-struct PrimitiveType : Type {
-	std::string name;
-};
-
-struct ArrayType : Type {
-	Type* type;
-	int num_elements;
-};
-
-struct RecordField {
-	Type* type;
-	std::string name;
-};
-
-struct RecordType : Type {
-	std::vector<RecordField*> fields;
-};
-
-// TODO: helper classes (e.g., SymbolTableBuilder)
-
 ////////////////////////////////////////////////////////////////////////
 // Context class implementation
 ////////////////////////////////////////////////////////////////////////
 
 Context::Context(struct Node* ast) {
-	// TODO: implement
+	root = ast;
 }
 
 Context::~Context() {}
@@ -74,7 +50,10 @@ void Context::set_flag(char flag) {
 }
 
 void Context::build_symtab() {
-	// TODO: implement
+	SymbolTable symtab;
+	ASTVisitor visitor(symtab);
+	visitor.print_symbol_table = print_symbol_table;
+	visitor.visit(root);
 }
 
 // TODO: implementation of additional Context member functions

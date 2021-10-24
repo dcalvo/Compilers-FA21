@@ -106,6 +106,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="node.cpp" />
     <ClCompile Include="parse.tab.c" />
+    <ClCompile Include="symtab.cpp" />
     <ClCompile Include="treeprint.c" />
     <ClCompile Include="util.c" />
   </ItemGroup>

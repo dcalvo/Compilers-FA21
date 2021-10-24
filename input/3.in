@@ -6,7 +6,7 @@ PROGRAM person;
   VAR p: Person;
 
 BEGIN
-   IF -1 >= 18 THEN
+   IF 5 + 9 >= 18 THEN
     WRITE 1;
   ELSE
     WRITE 0;

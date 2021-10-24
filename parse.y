@@ -135,7 +135,7 @@ factor
   ;
   
 primary
-  : TOK_INT_LITERAL
+  : TOK_INT_LITERAL { $$ = node_build1(AST_INT_LITERAL, $1); }
   | designator { $$ = $1; }
   | TOK_LPAREN expression TOK_RPAREN { $$ = $2; }
   ;

@@ -42,6 +42,12 @@ bool check_const(const SymbolTable* symtab, struct Node* operand_ast) {
 		       : false;
 }
 
+// traverses a list of identifiers and stores them in the provided vector
+void collate_identifiers(struct Node* ast, std::vector<std::string>& ids) {
+	ids.push_back(ast->get_kid(0)->get_str());
+	if (ast->get_num_kids() == 2) collate_identifiers(ast->get_kid(1), ids);
+}
+
 ASTVisitor::ASTVisitor(SymbolTable* symtab) {
 	this->symtab = symtab;
 }
@@ -266,12 +272,6 @@ void ASTVisitor::visit_var_declarations(struct Node* ast) {
 	recur_on_children(ast); // default behavior
 }
 
-// traverses a list of identifiers and stores them in the provided vector
-void collate_identifiers(struct Node* ast, std::vector<std::string>& ids) {
-	ids.push_back(ast->get_kid(0)->get_str());
-	if (ast->get_num_kids() == 2) collate_identifiers(ast->get_kid(1), ids);
-}
-
 void ASTVisitor::visit_var_def(struct Node* ast) {
 	recur_on_children(ast);
 	const auto identifiers_ast = ast->get_kid(0);
@@ -436,7 +436,20 @@ void ASTVisitor::visit_instructions(struct Node* ast) {
 }
 
 void ASTVisitor::visit_assign(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	if (!check_integral(symtab, right_ast)) {
+		const struct SourceInfo err = right_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an assigned value\n", err.filename, err.line,
+		          err.col, right_ast->get_str().c_str());
+	}
+	if (left_ast->get_type() != right_ast->get_type()) {
+		const struct SourceInfo err = left_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: LHS of assignment is type '%s' while RHS of assignment is type '%s'\n",
+		          err.filename, err.line, err.col, left_ast->get_type()->to_string().c_str(),
+		          right_ast->get_type()->to_string().c_str());
+	}
 }
 
 void ASTVisitor::visit_if(struct Node* ast) {

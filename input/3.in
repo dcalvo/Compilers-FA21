@@ -1,16 +1,13 @@
-PROGRAM SumToN;
-  VAR i, sum, n: INTEGER;
-  VAR x : ARRAY 10 OF CHAR;
+PROGRAM assign01;
+    TYPE R = RECORD x, y: INTEGER; END;
+    TYPE Q = RECORD a, b: INTEGER; END;
+
+    VAR a: ARRAY 5 OF R;
+    VAR b: ARRAY 5 OF Q;
 BEGIN
-  -- read integer from user
-  READ n;
-  -- compute sum from 1 to the integer
-  i := 1;
-  sum := 0;
-  WHILE i > x DO
-    sum := sum + i;
-    i := i + 1;
-  END;
-  -- output the sum
-  WRITE sum;
+    --a := b;
+    b[0].a := 1;
+    b[0].b := 2;
+    a[0].x := b[0].a;
+    a[0].y := b[0].b;
 END.

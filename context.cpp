@@ -1,14 +1,10 @@
 #include <cassert>
 #include <cstdio>
-#include <cstdlib>
 #include <set>
 #include "util.h"
 #include "cpputil.h"
 #include "node.h"
-#include "type.h"
-#include "symbol.h"
 #include "symtab.h"
-#include "ast.h"
 #include "astvisitor.h"
 #include "context.h"
 
@@ -30,7 +26,6 @@ public:
 
 	void build_symtab();
 
-	// TODO: additional methods
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -54,10 +49,6 @@ void Context::build_symtab() {
 	ASTVisitor visitor(symtab);
 	visitor.visit(root);
 }
-
-// TODO: implementation of additional Context member functions
-
-// TODO: implementation of member functions for helper classes
 
 ////////////////////////////////////////////////////////////////////////
 // Context API functions

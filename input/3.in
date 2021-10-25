@@ -1,13 +1,11 @@
-PROGRAM assign01;
-    TYPE R = RECORD x, y: INTEGER; END;
-    TYPE Q = RECORD a, b: INTEGER; END;
+PROGRAM add;
+  VAR a, b, sum: INTEGER;
+  VAR x : ARRAY 10 OF INTEGER;
 
-    VAR a: ARRAY 5 OF R;
-    VAR b: ARRAY 5 OF Q;
 BEGIN
-    --a := b;
-    b[0].a := 1;
-    b[0].b := 2;
-    a[0].x := b[0].a;
-    a[0].y := b[0].b;
+  --READ x;
+  READ a;
+  READ b;
+  sum := a + b;
+  WRITE x;
 END.

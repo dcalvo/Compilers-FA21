@@ -5,7 +5,6 @@
 #include "astvisitor.h"
 #include "type.h"
 #include <iostream>
-
 #include "util.h"
 
 // returns true if given operand_ast is integral (INTEGER or CHAR), false otherwise
@@ -307,6 +306,7 @@ void ASTVisitor::visit_add(struct Node* ast) {
 	const int result = left_ast->get_ival() + right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	// if either operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, left_ast)) {
 		ast->set_str(left_ast->get_str());
 		ast->set_source_info(left_ast->get_source_info());
@@ -326,6 +326,7 @@ void ASTVisitor::visit_subtract(struct Node* ast) {
 	const int result = left_ast->get_ival() - right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	// if either operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, left_ast)) {
 		ast->set_str(left_ast->get_str());
 		ast->set_source_info(left_ast->get_source_info());
@@ -345,6 +346,7 @@ void ASTVisitor::visit_multiply(struct Node* ast) {
 	const int result = left_ast->get_ival() * right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	// if either operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, left_ast)) {
 		ast->set_str(left_ast->get_str());
 		ast->set_source_info(left_ast->get_source_info());
@@ -369,6 +371,7 @@ void ASTVisitor::visit_divide(struct Node* ast) {
 	const int result = left_ast->get_ival() / right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	// if either operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, left_ast)) {
 		ast->set_str(left_ast->get_str());
 		ast->set_source_info(left_ast->get_source_info());
@@ -393,6 +396,7 @@ void ASTVisitor::visit_modulus(struct Node* ast) {
 	const int result = left_ast->get_ival() % right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	// if either operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, left_ast)) {
 		ast->set_str(left_ast->get_str());
 		ast->set_source_info(left_ast->get_source_info());
@@ -416,6 +420,7 @@ void ASTVisitor::visit_negate(struct Node* ast) {
 	const int result = -operand_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(operand_ast->get_type());
+	// if the operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, operand_ast)) {
 		ast->set_str(operand_ast->get_str());
 		ast->set_source_info(operand_ast->get_source_info());
@@ -511,11 +516,37 @@ void ASTVisitor::visit_compare_gte(struct Node* ast) {
 }
 
 void ASTVisitor::visit_write(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto var_ast = ast->get_kid(0);
+	if (!check_integral(symtab, var_ast)) {
+		// not an integer or char, maybe an array of char
+		const auto char_type = symtab->lookup("CHAR")->get_type();
+		const auto array_ = dynamic_cast<ArrayType*>(var_ast->get_type());
+		if (!array_ || array_->get_type() != char_type) {
+			// neither an integer, char, or array of char
+			const struct SourceInfo err = var_ast->get_source_info();
+			err_fatal("%s:%d:%d: Error: Inappropriate type '%s' for WRITE statement\n", err.filename, err.line, err.col,
+			          var_ast->get_type()->to_string().c_str());
+		}
+		// it's an array of char
+	}
 }
 
 void ASTVisitor::visit_read(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto var_ast = ast->get_kid(0);
+	if (!check_integral(symtab, var_ast)) {
+		// not an integer or char, maybe an array of char
+		const auto char_type = symtab->lookup("CHAR")->get_type();
+		const auto array_ = dynamic_cast<ArrayType*>(var_ast->get_type());
+		if (!array_ || array_->get_type() != char_type) {
+			// neither an integer, char, or array of char
+			const struct SourceInfo err = var_ast->get_source_info();
+			err_fatal("%s:%d:%d: Error: Inappropriate type '%s' for READ statement\n", err.filename, err.line, err.col,
+			          var_ast->get_type()->to_string().c_str());
+		}
+		// it's an array of char
+	}
 }
 
 void ASTVisitor::visit_var_ref(struct Node* ast) {
@@ -537,6 +568,7 @@ void ASTVisitor::visit_array_element_ref(struct Node* ast) {
 	recur_on_children(ast);
 	const auto identifier_ast = ast->get_kid(0);
 	const auto index_ast = ast->get_kid(1);
+	// try to coerce into array
 	const auto array_ = dynamic_cast<ArrayType*>(identifier_ast->get_type());
 	if (!array_) {
 		const struct SourceInfo err = index_ast->get_source_info();
@@ -557,6 +589,7 @@ void ASTVisitor::visit_field_ref(struct Node* ast) {
 	recur_on_children(ast);
 	const auto record_ast = ast->get_kid(0);
 	const auto field_ast = ast->get_kid(1);
+	// try to coerce into record
 	const auto record = dynamic_cast<RecordType*>(record_ast->get_type());
 	if (!record) {
 		const struct SourceInfo err = field_ast->get_source_info();
@@ -580,6 +613,7 @@ void ASTVisitor::visit_identifier_list(struct Node* ast) {
 
 void ASTVisitor::visit_expression_list(struct Node* ast) {
 	recur_on_children(ast);
+	// just pass information up the tree
 	const auto expression_ast = ast->get_kid(0);
 	ast->set_ival(expression_ast->get_ival());
 	ast->set_type(expression_ast->get_type());

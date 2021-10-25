@@ -3,9 +3,12 @@
 #include "grammar_symbols.h"
 #include "ast.h"
 #include "astvisitor.h"
+#include "type.h"
 #include <iostream>
 
-ASTVisitor::ASTVisitor(SymbolTable& symtab) {
+#include "util.h"
+
+ASTVisitor::ASTVisitor(SymbolTable* symtab) {
 	this->symtab = symtab;
 }
 
@@ -159,11 +162,28 @@ void ASTVisitor::visit_type_def(struct Node* ast) {
 }
 
 void ASTVisitor::visit_named_type(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const struct Node* tok_identifier = ast->get_kid(0);
+	const auto sym = symtab->lookup(tok_identifier->get_str());
+	if (!sym) {
+		const struct SourceInfo err = tok_identifier->get_source_info();
+		err_fatal("%s:%d:%d: Error: Use of a named type that is not defined\n", err.filename, err.line, err.col);
+		return;
+	}
+	ast->set_type(sym->get_type());
 }
 
 void ASTVisitor::visit_array_type(struct Node* ast) {
 	recur_on_children(ast); // default behavior
+	const auto size_ast = ast->get_kid(0);
+	const auto size_ast_type = size_ast->get_type();
+	if (size_ast_type != symtab->lookup("INTEGER")->get_type()) {
+		const struct SourceInfo err = size_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Array size not an integer\n", err.filename, err.line, err.col);
+		return;
+	}
+	const auto type_ast = ast->get_kid(1);
+	const auto array_type = new ArrayType(type_ast->get_type(), size_ast->get_ival());
+	ast->set_type(array_type);
 }
 
 void ASTVisitor::visit_record_type(struct Node* ast) {
@@ -174,8 +194,24 @@ void ASTVisitor::visit_var_declarations(struct Node* ast) {
 	recur_on_children(ast); // default behavior
 }
 
+// traverses a list of identifiers and stores them in the provided vector
+void collate_identifiers(struct Node* ast, std::vector<std::string>& ids) {
+	ids.push_back(ast->get_kid(0)->get_str());
+	if (ast->get_num_kids() == 2) collate_identifiers(ast->get_kid(1), ids);
+}
+
 void ASTVisitor::visit_var_def(struct Node* ast) {
 	recur_on_children(ast); // default behavior
+	const auto identifiers_ast = ast->get_kid(0);
+	const auto type_ast = ast->get_kid(1);
+	std::vector<std::string> ids;
+	// get all of the identifiers
+	collate_identifiers(identifiers_ast, ids);
+	// add each to the symbol table
+	for (const auto& id : ids) {
+		const auto sym = new Symbol(id, type_ast->get_type(), VAR);
+		symtab->define(id, sym);
+	}
 }
 
 void ASTVisitor::visit_add(struct Node* ast) {
@@ -203,7 +239,11 @@ void ASTVisitor::visit_negate(struct Node* ast) {
 }
 
 void ASTVisitor::visit_int_literal(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const struct Node* tok_int_literal = ast->get_kid(0);
+	const auto type = symtab->lookup("INTEGER")->get_type();
+	ast->set_source_info(tok_int_literal->get_source_info());
+	ast->set_ival(std::stoi(tok_int_literal->get_str()));
+	ast->set_type(type);
 }
 
 void ASTVisitor::visit_instructions(struct Node* ast) {

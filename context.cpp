@@ -50,9 +50,8 @@ void Context::set_flag(char flag) {
 }
 
 void Context::build_symtab() {
-	SymbolTable symtab;
+	const auto symtab = new SymbolTable(print_symbol_table);
 	ASTVisitor visitor(symtab);
-	visitor.print_symbol_table = print_symbol_table;
 	visitor.visit(root);
 }
 

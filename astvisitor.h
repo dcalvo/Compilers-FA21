@@ -1,13 +1,11 @@
 #ifndef ASTVISITOR_H
 #define ASTVISITOR_H
-#include "symtab.h"
 
 class ASTVisitor {
-	SymbolTable symtab;
+	SymbolTable* symtab = nullptr;
 
 public:
-	bool print_symbol_table;
-	ASTVisitor(SymbolTable& symtab);
+	ASTVisitor(SymbolTable* symtab);
 	virtual ~ASTVisitor();
 
 	void visit(struct Node* ast);

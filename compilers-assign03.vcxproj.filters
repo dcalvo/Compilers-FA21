@@ -48,6 +48,12 @@
     <ClCompile Include="symtab.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="symbol.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ast.h">

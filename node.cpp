@@ -18,10 +18,9 @@ Node::Node(int tag)
   : m_tag(tag)
   , m_source_info { .filename = "<unknown file>", .line = -1, .col = -1 }
   , m_ival(0L)
-/*
   , m_symtab(nullptr)
   , m_index(0)
-*/ {
+ {
 }
 
 Node::~Node() {
@@ -83,7 +82,7 @@ void Node::set_ival(long ival) {
   m_ival = ival;
 }
 
-/*
+
 void Node::set_symtab(SymbolTable *symtab) {
   m_symtab = symtab;
 }
@@ -116,16 +115,16 @@ Type *Node::get_type() {
     return m_type;
   }
 
-  // If there is a symbol table entry, then return its type
+  /*// If there is a symbol table entry, then return its type
   Symbol *sym = node_get_symbol(this);
   if (sym) {
     return sym->get_type();
-  }
+  }*/
 
   // no type is associated with this node
   return nullptr;
 }
-*/
+
 
 ////////////////////////////////////////////////////////////////////////
 // C API for working with Nodes

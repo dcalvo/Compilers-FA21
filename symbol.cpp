@@ -25,6 +25,15 @@ SymbolKind Symbol::get_kind() const {
 	return kind;
 }
 
+void Symbol::set_ival(int ival) {
+	this->ival = ival;
+}
+
+
+int Symbol::get_ival() const {
+	return ival;
+}
+
 Type* Symbol::get_type() const {
 	return type;
 }

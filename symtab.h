@@ -14,7 +14,7 @@ public:
 	SymbolTable(SymbolTable* symtab);
 	SymbolTable(bool print_symbols);
 	~SymbolTable();
-	Symbol* lookup(const std::string& name);
+	Symbol* lookup(const std::string& name) const;
 	bool define(Symbol* sym);
 	std::vector<Symbol*> get_syms() const;
 };

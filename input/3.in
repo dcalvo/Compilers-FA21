@@ -1,9 +1,13 @@
-PROGRAM record04;
-  TYPE int = INTEGER;
-  VAR x : RECORD
-    int : int;
-    x : int;
-  END;
+PROGRAM const02;
+  CONST N = 20;
+  -- a named constant should be allowed as an array size
+  VAR arr : ARRAY N OF INTEGER;
+  VAR i : INTEGER;
+
 BEGIN
-    READ x.int;
+  i := 0;
+  WHILE i < N DO
+    READ arr[i];
+  END;
+
 END.

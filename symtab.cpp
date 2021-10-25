@@ -24,7 +24,7 @@ SymbolTable::SymbolTable(bool print_symbols): print_symbols(print_symbols) {
 
 SymbolTable::~SymbolTable() = default;
 
-Symbol* SymbolTable::lookup(const std::string& name) {
+Symbol* SymbolTable::lookup(const std::string& name) const {
 	Symbol* sym_ptr = nullptr;
 	for (const auto sym : syms) {
 		if (sym->get_name() == name) sym_ptr = sym;

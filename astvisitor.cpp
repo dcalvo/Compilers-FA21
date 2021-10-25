@@ -150,7 +150,22 @@ void ASTVisitor::visit_constant_declarations(struct Node* ast) {
 }
 
 void ASTVisitor::visit_constant_def(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto identifier_ast = ast->get_kid(0);
+	const auto value_ast = ast->get_kid(1);
+	if (value_ast->get_type() != symtab->lookup("INTEGER")->get_type()) {
+		const struct SourceInfo err = value_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-constant value '%s' in a constant expression\n", err.filename, err.line,
+		          err.col, value_ast->get_str().c_str());
+		return;
+	}
+	const auto sym = new Symbol(identifier_ast->get_str(), value_ast->get_type(), CONST);
+	sym->set_ival(value_ast->get_ival());
+	if (!symtab->define(sym)) {
+		const struct SourceInfo err = identifier_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Name '%s' is already defined\n", err.filename, err.line, err.col,
+		          sym->get_name().c_str());
+	}
 }
 
 void ASTVisitor::visit_type_declarations(struct Node* ast) {
@@ -162,7 +177,11 @@ void ASTVisitor::visit_type_def(struct Node* ast) {
 	const auto identifier_ast = ast->get_kid(0);
 	const auto type_ast = ast->get_kid(1);
 	const auto sym = new Symbol(identifier_ast->get_str(), type_ast->get_type(), TYPE);
-	symtab->define(sym);
+	if (!symtab->define(sym)) {
+		const struct SourceInfo err = identifier_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Name '%s' is already defined\n", err.filename, err.line, err.col,
+		          sym->get_name().c_str());
+	}
 }
 
 void ASTVisitor::visit_named_type(struct Node* ast) {
@@ -170,20 +189,19 @@ void ASTVisitor::visit_named_type(struct Node* ast) {
 	const auto sym = symtab->lookup(tok_identifier->get_str());
 	if (!sym) {
 		const struct SourceInfo err = tok_identifier->get_source_info();
-		err_fatal("%s:%d:%d: Error: Use of a named type that is not defined\n", err.filename, err.line, err.col);
+		err_fatal("%s:%d:%d: Error: Use of a named type '%s' that is not defined\n", err.filename, err.line, err.col,
+		          tok_identifier->get_str().c_str());
 		return;
 	}
 	ast->set_source_info(tok_identifier->get_source_info());
 	ast->set_str(tok_identifier->get_str());
 	ast->set_type(sym->get_type());
-	ast->set_symtab(symtab);
 }
 
 void ASTVisitor::visit_array_type(struct Node* ast) {
 	recur_on_children(ast);
 	const auto size_ast = ast->get_kid(0);
-	const auto size_ast_type = size_ast->get_type();
-	if (size_ast_type != symtab->lookup("INTEGER")->get_type()) {
+	if (size_ast->get_type() != symtab->lookup("INTEGER")->get_type()) {
 		const struct SourceInfo err = size_ast->get_source_info();
 		err_fatal("%s:%d:%d: Error: Array size not an integer\n", err.filename, err.line, err.col);
 		return;
@@ -197,7 +215,9 @@ void ASTVisitor::visit_record_type(struct Node* ast) {
 	const auto outer_symtab = symtab;
 	const auto record_symtab = new SymbolTable(symtab);
 	symtab = record_symtab;
+	// increase depth by 1 and continue
 	recur_on_children(ast);
+	// lift out and fill record type
 	symtab = outer_symtab;
 	std::vector<RecordField*> fields;
 	for (const auto& sym : record_symtab->get_syms()) {
@@ -237,36 +257,113 @@ void ASTVisitor::visit_var_def(struct Node* ast) {
 	// add each to the symbol table
 	for (const auto& id : ids) {
 		const auto sym = new Symbol(id, type_ast->get_type(), VAR);
-		symtab->define(sym);
+		if (!symtab->define(sym)) {
+			const struct SourceInfo err = identifiers_ast->get_source_info();
+			err_fatal("%s:%d:%d: Error: Name '%s' is already defined\n", err.filename, err.line, err.col, id.c_str());
+			return;
+		}
 	}
 }
 
+// returns Type* to either INTEGER or CHAR depending on operand types, errors otherwise
+Type* check_operand_types(const SymbolTable* symtab, struct Node* left_ast, struct Node* right_ast) {
+	const auto left_type = left_ast->get_type();
+	const auto right_type = right_ast->get_type();
+	const auto int_type = symtab->lookup("INTEGER")->get_type();
+	const auto char_type = symtab->lookup("CHAR")->get_type();
+	if (left_type != int_type && left_type != char_type) {
+		const struct SourceInfo err = left_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
+		          err.line, err.col, left_ast->get_str().c_str());
+		return nullptr;
+	}
+	if (right_type != int_type && right_type != char_type) {
+		const struct SourceInfo err = right_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
+		          err.line, err.col, right_ast->get_str().c_str());
+		return nullptr;
+	}
+	return left_type == right_type ? left_type : int_type;
+}
+
 void ASTVisitor::visit_add(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	const auto result_type = check_operand_types(symtab, left_ast, right_ast);
+	const int result = left_ast->get_ival() + right_ast->get_ival();
+	ast->set_ival(result);
+	ast->set_type(result_type);
 }
 
 void ASTVisitor::visit_subtract(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	const auto result_type = check_operand_types(symtab, left_ast, right_ast);
+	const int result = left_ast->get_ival() - right_ast->get_ival();
+	ast->set_ival(result);
+	ast->set_type(result_type);
 }
 
 void ASTVisitor::visit_multiply(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	const auto result_type = check_operand_types(symtab, left_ast, right_ast);
+	const int result = left_ast->get_ival() * right_ast->get_ival();
+	ast->set_ival(result);
+	ast->set_type(result_type);
 }
 
 void ASTVisitor::visit_divide(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	const auto result_type = check_operand_types(symtab, left_ast, right_ast);
+	if (right_ast->get_ival() == 0) {
+		const struct SourceInfo err = right_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Illegal division by zero\n", err.filename, err.line, err.col);
+		return;
+	}
+	const int result = left_ast->get_ival() / right_ast->get_ival();
+	ast->set_ival(result);
+	ast->set_type(result_type);
 }
 
 void ASTVisitor::visit_modulus(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	const auto result_type = check_operand_types(symtab, left_ast, right_ast);
+	if (right_ast->get_ival() == 0) {
+		const struct SourceInfo err = right_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Illegal mod by zero\n", err.filename, err.line, err.col);
+		return;
+	}
+	const int result = left_ast->get_ival() % right_ast->get_ival();
+	ast->set_ival(result);
+	ast->set_type(result_type);
 }
 
 void ASTVisitor::visit_negate(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto operand_ast = ast->get_kid(0);
+	const auto int_type = symtab->lookup("INTEGER")->get_type();
+	const auto char_type = symtab->lookup("CHAR")->get_type();
+	if (operand_ast->get_type() != int_type && operand_ast->get_type() != char_type) {
+		const struct SourceInfo err = operand_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a unary operator\n", err.filename,
+		          err.line, err.col, operand_ast->get_str().c_str());
+		return;
+	}
+	const int result = -operand_ast->get_ival();
+	ast->set_ival(result);
+	ast->set_type(operand_ast->get_type());
 }
 
 void ASTVisitor::visit_int_literal(struct Node* ast) {
-	const struct Node* tok_int_literal = ast->get_kid(0);
+	const auto tok_int_literal = ast->get_kid(0);
 	assert(symtab->lookup("INTEGER")); // we should always have INTEGER type
 	const auto type = symtab->lookup("INTEGER")->get_type();
 	ast->set_source_info(tok_int_literal->get_source_info());
@@ -331,7 +428,18 @@ void ASTVisitor::visit_read(struct Node* ast) {
 }
 
 void ASTVisitor::visit_var_ref(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const struct Node* tok_identifier = ast->get_kid(0);
+	const auto sym = symtab->lookup(tok_identifier->get_str());
+	if (!sym) {
+		const struct SourceInfo err = tok_identifier->get_source_info();
+		err_fatal("%s:%d:%d: Error: Use of an undefined variable '%s'\n", err.filename, err.line, err.col,
+		          tok_identifier->get_str().c_str());
+		return;
+	}
+	ast->set_ival(sym->get_ival());
+	ast->set_source_info(tok_identifier->get_source_info());
+	ast->set_str(tok_identifier->get_str());
+	ast->set_type(sym->get_type());
 }
 
 void ASTVisitor::visit_array_element_ref(struct Node* ast) {

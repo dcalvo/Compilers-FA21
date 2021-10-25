@@ -1,7 +1,6 @@
 PROGRAM person;
-  TYPE a = INTEGER;
   TYPE Person = RECORD
-    name, uwuamogus: ARRAY 10 OF CHAR;
+    name: ARRAY 10 OF CHAR;
     age: INTEGER;
   END;
   VAR p: Person;

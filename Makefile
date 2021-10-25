@@ -16,7 +16,7 @@ CC = gcc
 CFLAGS = -g -Wall
 
 CXX = g++
-CXXFLAGS = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -std=c++17
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<

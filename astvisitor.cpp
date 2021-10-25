@@ -158,7 +158,11 @@ void ASTVisitor::visit_type_declarations(struct Node* ast) {
 }
 
 void ASTVisitor::visit_type_def(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto identifier_ast = ast->get_kid(0);
+	const auto type_ast = ast->get_kid(1);
+	const auto sym = new Symbol(identifier_ast->get_str(), type_ast->get_type(), TYPE);
+	symtab->define(sym);
 }
 
 void ASTVisitor::visit_named_type(struct Node* ast) {
@@ -169,11 +173,14 @@ void ASTVisitor::visit_named_type(struct Node* ast) {
 		err_fatal("%s:%d:%d: Error: Use of a named type that is not defined\n", err.filename, err.line, err.col);
 		return;
 	}
+	ast->set_source_info(tok_identifier->get_source_info());
+	ast->set_str(tok_identifier->get_str());
 	ast->set_type(sym->get_type());
+	ast->set_symtab(symtab);
 }
 
 void ASTVisitor::visit_array_type(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
 	const auto size_ast = ast->get_kid(0);
 	const auto size_ast_type = size_ast->get_type();
 	if (size_ast_type != symtab->lookup("INTEGER")->get_type()) {
@@ -187,7 +194,18 @@ void ASTVisitor::visit_array_type(struct Node* ast) {
 }
 
 void ASTVisitor::visit_record_type(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const auto outer_symtab = symtab;
+	const auto record_symtab = new SymbolTable(symtab);
+	symtab = record_symtab;
+	recur_on_children(ast);
+	symtab = outer_symtab;
+	std::vector<RecordField*> fields;
+	for (const auto& sym : record_symtab->get_syms()) {
+		const auto field = new RecordField(sym->get_type(), sym->get_name());
+		fields.push_back(field);
+	}
+	const auto record_type = new RecordType(fields);
+	ast->set_type(record_type);
 }
 
 void ASTVisitor::visit_var_declarations(struct Node* ast) {
@@ -201,16 +219,25 @@ void collate_identifiers(struct Node* ast, std::vector<std::string>& ids) {
 }
 
 void ASTVisitor::visit_var_def(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
 	const auto identifiers_ast = ast->get_kid(0);
 	const auto type_ast = ast->get_kid(1);
+	if (type_ast->get_tag() == AST_NAMED_TYPE) {
+		const auto sym = symtab->lookup(type_ast->get_str());
+		if (sym->get_kind() != TYPE) {
+			const struct SourceInfo err = type_ast->get_source_info();
+			err_fatal("%s:%d:%d: Error: Identifier '%s' does not refer to a type\n", err.filename, err.line, err.col,
+			          type_ast->get_str().c_str());
+			return;
+		}
+	}
 	std::vector<std::string> ids;
 	// get all of the identifiers
 	collate_identifiers(identifiers_ast, ids);
 	// add each to the symbol table
 	for (const auto& id : ids) {
 		const auto sym = new Symbol(id, type_ast->get_type(), VAR);
-		symtab->define(id, sym);
+		symtab->define(sym);
 	}
 }
 
@@ -240,6 +267,7 @@ void ASTVisitor::visit_negate(struct Node* ast) {
 
 void ASTVisitor::visit_int_literal(struct Node* ast) {
 	const struct Node* tok_int_literal = ast->get_kid(0);
+	assert(symtab->lookup("INTEGER")); // we should always have INTEGER type
 	const auto type = symtab->lookup("INTEGER")->get_type();
 	ast->set_source_info(tok_int_literal->get_source_info());
 	ast->set_ival(std::stoi(tok_int_literal->get_str()));

@@ -1,14 +1,9 @@
-PROGRAM person;
-  TYPE Person = RECORD
-    name: ARRAY 10 OF CHAR;
-    age: INTEGER;
+PROGRAM record04;
+  TYPE int = INTEGER;
+  VAR x : RECORD
+    int : int;
+    x : int;
   END;
-  VAR p: Person;
-
 BEGIN
-   IF 5 + 9 >= 18 THEN
-    WRITE 1;
-  ELSE
-    WRITE 0;
-  END;
+    READ x.int;
 END.

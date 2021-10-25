@@ -1,19 +1,22 @@
-#include "symbol.h"
-#include <unordered_map>
-#include <string>
 #ifndef SYMTAB_H
 #define SYMTAB_H
+#include "symbol.h"
+#include <vector>
+#include <string>
 
 class SymbolTable {
-	std::unordered_map<std::string, Symbol*> syms;
+	std::vector<Symbol*> syms;
 	SymbolTable* parent = nullptr;
 	bool print_symbols;
+	void get_depth(int& counter);
 
 public:
+	SymbolTable(SymbolTable* symtab);
 	SymbolTable(bool print_symbols);
 	~SymbolTable();
 	Symbol* lookup(const std::string& name);
-	bool define(const std::string& name, Symbol* sym);
+	bool define(Symbol* sym);
+	std::vector<Symbol*> get_syms() const;
 };
 
 #endif // SYMTAB_H

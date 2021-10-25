@@ -4,6 +4,10 @@ Symbol::Symbol(const std::string& name, Type* type, SymbolKind kind): name(name)
 
 Symbol::~Symbol() = default;
 
+std::string Symbol::get_name() const {
+	return name;
+}
+
 std::string Symbol::get_kind_name() const {
 	switch (kind) {
 	case 0:
@@ -15,6 +19,10 @@ std::string Symbol::get_kind_name() const {
 	default:
 		return "<unknown SymbolKind>";
 	}
+}
+
+SymbolKind Symbol::get_kind() const {
+	return kind;
 }
 
 Type* Symbol::get_type() const {

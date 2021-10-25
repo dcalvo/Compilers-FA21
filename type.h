@@ -1,7 +1,7 @@
-#include <vector>
-#include <string>
 #ifndef TYPE_H
 #define TYPE_H
+#include <vector>
+#include <string>
 
 class Type {
 public:
@@ -11,6 +11,7 @@ public:
 ///////////////////
 // PrimitiveType //
 ///////////////////
+
 class PrimitiveType : public Type {
 	std::string name;
 
@@ -23,6 +24,7 @@ public:
 ///////////////
 // ArrayType //
 ///////////////
+
 class ArrayType : public Type {
 	Type* type;
 	int num_elements;
@@ -35,14 +37,18 @@ public:
 ////////////////
 // RecordType //
 ////////////////
+
 struct RecordField {
 	Type* type;
 	std::string name;
+	RecordField(Type* type, const std::string& name);
 };
 
 class RecordType : public Type {
 	std::vector<RecordField*> fields;
 public:
+	RecordType(const std::vector<RecordField*>& fields);
+	~RecordType();
 	std::string to_string() override;
 };
 

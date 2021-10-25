@@ -83,5 +83,14 @@
     <ClInclude Include="util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="symbol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="symtab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="type.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@
 ///////////////////
 // PrimitiveType //
 ///////////////////
+
 PrimitiveType::PrimitiveType(const std::string& name): name(name) {}
 
 PrimitiveType::~PrimitiveType() = default;
@@ -16,6 +17,7 @@ std::string PrimitiveType::to_string() {
 ///////////////
 // ArrayType //
 ///////////////
+
 ArrayType::ArrayType(Type* type, int num_elements): type(type), num_elements(num_elements) {}
 
 ArrayType::~ArrayType() = default;
@@ -27,3 +29,19 @@ std::string ArrayType::to_string() {
 ////////////////
 // RecordType //
 ////////////////
+
+RecordField::RecordField(Type* type, const std::string& name): type(type), name(name) {}
+
+RecordType::RecordType(const std::vector<RecordField*>& fields): fields(fields) {}
+
+RecordType::~RecordType() = default;
+
+std::string RecordType::to_string() {
+	std::string out = "RECORD (";
+	for (const auto field : fields) {
+		out += field->type->to_string() + " x ";
+	}
+	out.erase(out.length() - 3);
+	out += ")";
+	return out;
+}

@@ -31,6 +31,7 @@ class ArrayType : public Type {
 public:
 	ArrayType(Type* type, int num_elements);
 	~ArrayType();
+	Type* get_type();
 	std::string to_string() override;
 };
 
@@ -49,6 +50,7 @@ class RecordType : public Type {
 public:
 	RecordType(const std::vector<RecordField*>& fields);
 	~RecordType();
+	Type* get_field(const std::string& name);
 	std::string to_string() override;
 };
 

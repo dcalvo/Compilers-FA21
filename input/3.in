@@ -1,13 +1,19 @@
-PROGRAM const02;
-  CONST N = 20;
-  -- a named constant should be allowed as an array size
-  VAR arr : ARRAY N OF INTEGER;
-  VAR i : INTEGER;
+PROGRAM person;
+  TYPE Person = RECORD
+    --name: INTEGER;
+    name: ARRAY 10 OF CHAR;
+    age: INTEGER;
+  END;
+  TYPE Parent = RECORD
+    details: Person;
+    children: ARRAY 2 OF Person;
+  END;
+  VAR parents : ARRAY 4 OF Parent;
+  VAR i, j, k : INTEGER;
+
 
 BEGIN
   i := 0;
-  WHILE i < N DO
-    READ arr[i];
-  END;
-
+    k := 0;
+      READ parents[i].details.name[k];
 END.

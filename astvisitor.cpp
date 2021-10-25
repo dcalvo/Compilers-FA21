@@ -265,25 +265,30 @@ void ASTVisitor::visit_var_def(struct Node* ast) {
 	}
 }
 
-// returns Type* to either INTEGER or CHAR depending on operand types, errors otherwise
-Type* check_operand_types(const SymbolTable* symtab, struct Node* left_ast, struct Node* right_ast) {
-	const auto left_type = left_ast->get_type();
-	const auto right_type = right_ast->get_type();
+// returns true if given operand_ast is integral (INTEGER or CHAR), false otherwise
+bool check_integral(const SymbolTable* symtab, struct Node* operand_ast) {
+	const auto operand_type = operand_ast->get_type();
 	const auto int_type = symtab->lookup("INTEGER")->get_type();
 	const auto char_type = symtab->lookup("CHAR")->get_type();
-	if (left_type != int_type && left_type != char_type) {
+	return operand_type != int_type && operand_type != char_type ? false : true;
+}
+
+// returns Type* to either INTEGER or CHAR depending on operand types, errors otherwise
+Type* check_operand_types(const SymbolTable* symtab, struct Node* left_ast, struct Node* right_ast) {
+	if (!check_integral(symtab, left_ast)) {
 		const struct SourceInfo err = left_ast->get_source_info();
 		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
 		          err.line, err.col, left_ast->get_str().c_str());
 		return nullptr;
 	}
-	if (right_type != int_type && right_type != char_type) {
+	if (!check_integral(symtab, right_ast)) {
 		const struct SourceInfo err = right_ast->get_source_info();
 		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
 		          err.line, err.col, right_ast->get_str().c_str());
 		return nullptr;
 	}
-	return left_type == right_type ? left_type : int_type;
+	const auto int_type = symtab->lookup("INTEGER")->get_type();
+	return left_ast->get_type() == right_ast->get_type() ? left_ast->get_type() : int_type;
 }
 
 void ASTVisitor::visit_add(struct Node* ast) {
@@ -349,9 +354,7 @@ void ASTVisitor::visit_modulus(struct Node* ast) {
 void ASTVisitor::visit_negate(struct Node* ast) {
 	recur_on_children(ast);
 	const auto operand_ast = ast->get_kid(0);
-	const auto int_type = symtab->lookup("INTEGER")->get_type();
-	const auto char_type = symtab->lookup("CHAR")->get_type();
-	if (operand_ast->get_type() != int_type && operand_ast->get_type() != char_type) {
+	if (!check_integral(symtab, operand_ast)) {
 		const struct SourceInfo err = operand_ast->get_source_info();
 		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a unary operator\n", err.filename,
 		          err.line, err.col, operand_ast->get_str().c_str());
@@ -443,11 +446,44 @@ void ASTVisitor::visit_var_ref(struct Node* ast) {
 }
 
 void ASTVisitor::visit_array_element_ref(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto identifier_ast = ast->get_kid(0);
+	const auto index_ast = ast->get_kid(1);
+	const auto array_ = dynamic_cast<ArrayType*>(identifier_ast->get_type());
+	if (!array_) {
+		const struct SourceInfo err = index_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Attempt to use the array subscript operator on non-array '%s'\n", err.filename,
+		          err.line, err.col, identifier_ast->get_str().c_str());
+	}
+	if (!check_integral(symtab, index_ast)) {
+		const struct SourceInfo err = index_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using non-integral value '%s' as an array index\n", err.filename,
+		          err.line, err.col, index_ast->get_str().c_str());
+	}
+	ast->set_str(identifier_ast->get_str());
+	ast->set_source_info(identifier_ast->get_source_info());
+	ast->set_type(array_->get_type());
 }
 
 void ASTVisitor::visit_field_ref(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto record_ast = ast->get_kid(0);
+	const auto field_ast = ast->get_kid(1);
+	const auto record = dynamic_cast<RecordType*>(record_ast->get_type());
+	if (!record) {
+		const struct SourceInfo err = field_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Attempt to access field on non-record '%s'\n", err.filename,
+		          err.line, err.col, record_ast->get_str().c_str());
+	}
+	const auto field_type = record->get_field(field_ast->get_str());
+	if (!field_type) {
+		const struct SourceInfo err = field_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Attempt to access nonexistent field '%s' on record '%s'\n", err.filename,
+		          err.line, err.col, field_ast->get_str().c_str(), record_ast->get_str().c_str());
+	}
+	ast->set_str(field_ast->get_str());
+	ast->set_source_info(field_ast->get_source_info());
+	ast->set_type(field_type);
 }
 
 void ASTVisitor::visit_identifier_list(struct Node* ast) {
@@ -455,7 +491,11 @@ void ASTVisitor::visit_identifier_list(struct Node* ast) {
 }
 
 void ASTVisitor::visit_expression_list(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto expression_ast = ast->get_kid(0);
+	ast->set_ival(expression_ast->get_ival());
+	ast->set_type(expression_ast->get_type());
+	ast->set_source_info(expression_ast->get_source_info());
 }
 
 void ASTVisitor::visit_identifier(struct Node* ast) {

@@ -22,6 +22,10 @@ ArrayType::ArrayType(Type* type, int num_elements): type(type), num_elements(num
 
 ArrayType::~ArrayType() = default;
 
+Type* ArrayType::get_type() {
+	return type;
+}
+
 std::string ArrayType::to_string() {
 	return "ARRAY " + std::to_string(num_elements) + " OF " + type->to_string();
 }
@@ -35,6 +39,13 @@ RecordField::RecordField(Type* type, const std::string& name): type(type), name(
 RecordType::RecordType(const std::vector<RecordField*>& fields): fields(fields) {}
 
 RecordType::~RecordType() = default;
+
+Type* RecordType::get_field(const std::string& name) {
+	for (const auto field : fields) {
+		if (name == field->name) return field->type;
+	}
+	return nullptr;
+}
 
 std::string RecordType::to_string() {
 	std::string out = "RECORD (";

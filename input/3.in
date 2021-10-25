@@ -1,19 +1,16 @@
-PROGRAM person;
-  TYPE Person = RECORD
-    --name: INTEGER;
-    name: ARRAY 10 OF CHAR;
-    age: INTEGER;
-  END;
-  TYPE Parent = RECORD
-    details: Person;
-    children: ARRAY 2 OF Person;
-  END;
-  VAR parents : ARRAY 4 OF Parent;
-  VAR i, j, k : INTEGER;
-
-
+PROGRAM SumToN;
+  VAR i, sum, n: INTEGER;
+  VAR x : ARRAY 10 OF CHAR;
 BEGIN
-  i := 0;
-    k := 0;
-      READ parents[i].details.name[k];
+  -- read integer from user
+  READ n;
+  -- compute sum from 1 to the integer
+  i := 1;
+  sum := 0;
+  WHILE i > x DO
+    sum := sum + i;
+    i := i + 1;
+  END;
+  -- output the sum
+  WRITE sum;
 END.

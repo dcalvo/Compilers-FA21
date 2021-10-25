@@ -8,6 +8,40 @@
 
 #include "util.h"
 
+// returns true if given operand_ast is integral (INTEGER or CHAR), false otherwise
+bool check_integral(const SymbolTable* symtab, struct Node* operand_ast) {
+	const auto operand_type = operand_ast->get_type();
+	const auto int_type = symtab->lookup("INTEGER")->get_type();
+	const auto char_type = symtab->lookup("CHAR")->get_type();
+	return operand_type != int_type && operand_type != char_type ? false : true;
+}
+
+// returns Type* to either INTEGER or CHAR depending on operand types, errors otherwise
+Type* check_operand_types(const SymbolTable* symtab, struct Node* left_ast, struct Node* right_ast) {
+	if (!check_integral(symtab, left_ast)) {
+		const struct SourceInfo err = left_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
+		          err.line, err.col, left_ast->get_str().c_str());
+		return nullptr;
+	}
+	if (!check_integral(symtab, right_ast)) {
+		const struct SourceInfo err = right_ast->get_source_info();
+		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
+		          err.line, err.col, right_ast->get_str().c_str());
+		return nullptr;
+	}
+	const auto int_type = symtab->lookup("INTEGER")->get_type();
+	return left_ast->get_type() == right_ast->get_type() ? left_ast->get_type() : int_type;
+}
+
+// returns true if the given node is an integer literal or defined as a constant expression, false otherwise
+bool check_const(const SymbolTable* symtab, struct Node* operand_ast) {
+	if (operand_ast->get_tag() == AST_INT_LITERAL) return true;
+	return operand_ast->get_tag() == AST_VAR_REF && symtab->lookup(operand_ast->get_str())->get_kind() == CONST
+		       ? true
+		       : false;
+}
+
 ASTVisitor::ASTVisitor(SymbolTable* symtab) {
 	this->symtab = symtab;
 }
@@ -132,7 +166,6 @@ void ASTVisitor::visit(struct Node* ast) {
 		visit_identifier(ast);
 		break;
 	default:
-		std::cout << "<error> unidentified AST node: " << ast_get_tag_name(ast->get_tag()) << '\n';
 		assert(false); // unknown AST node type
 	}
 }
@@ -153,7 +186,8 @@ void ASTVisitor::visit_constant_def(struct Node* ast) {
 	recur_on_children(ast);
 	const auto identifier_ast = ast->get_kid(0);
 	const auto value_ast = ast->get_kid(1);
-	if (value_ast->get_type() != symtab->lookup("INTEGER")->get_type()) {
+	// if the value_ast has a string, at least one of its children is a non-constant
+	if (value_ast->get_str().length()) {
 		const struct SourceInfo err = value_ast->get_source_info();
 		err_fatal("%s:%d:%d: Error: Using a non-constant value '%s' in a constant expression\n", err.filename, err.line,
 		          err.col, value_ast->get_str().c_str());
@@ -265,32 +299,6 @@ void ASTVisitor::visit_var_def(struct Node* ast) {
 	}
 }
 
-// returns true if given operand_ast is integral (INTEGER or CHAR), false otherwise
-bool check_integral(const SymbolTable* symtab, struct Node* operand_ast) {
-	const auto operand_type = operand_ast->get_type();
-	const auto int_type = symtab->lookup("INTEGER")->get_type();
-	const auto char_type = symtab->lookup("CHAR")->get_type();
-	return operand_type != int_type && operand_type != char_type ? false : true;
-}
-
-// returns Type* to either INTEGER or CHAR depending on operand types, errors otherwise
-Type* check_operand_types(const SymbolTable* symtab, struct Node* left_ast, struct Node* right_ast) {
-	if (!check_integral(symtab, left_ast)) {
-		const struct SourceInfo err = left_ast->get_source_info();
-		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
-		          err.line, err.col, left_ast->get_str().c_str());
-		return nullptr;
-	}
-	if (!check_integral(symtab, right_ast)) {
-		const struct SourceInfo err = right_ast->get_source_info();
-		err_fatal("%s:%d:%d: Error: Using a non-integral value '%s' as an operand to a binary operator\n", err.filename,
-		          err.line, err.col, right_ast->get_str().c_str());
-		return nullptr;
-	}
-	const auto int_type = symtab->lookup("INTEGER")->get_type();
-	return left_ast->get_type() == right_ast->get_type() ? left_ast->get_type() : int_type;
-}
-
 void ASTVisitor::visit_add(struct Node* ast) {
 	recur_on_children(ast);
 	const auto left_ast = ast->get_kid(0);
@@ -299,6 +307,15 @@ void ASTVisitor::visit_add(struct Node* ast) {
 	const int result = left_ast->get_ival() + right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	if (!check_const(symtab, left_ast)) {
+		ast->set_str(left_ast->get_str());
+		ast->set_source_info(left_ast->get_source_info());
+	}
+	else if (!check_const(symtab, right_ast)) {
+		ast->set_str(right_ast->get_str());
+		ast->set_source_info(right_ast->get_source_info());
+
+	}
 }
 
 void ASTVisitor::visit_subtract(struct Node* ast) {
@@ -309,6 +326,15 @@ void ASTVisitor::visit_subtract(struct Node* ast) {
 	const int result = left_ast->get_ival() - right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	if (!check_const(symtab, left_ast)) {
+		ast->set_str(left_ast->get_str());
+		ast->set_source_info(left_ast->get_source_info());
+	}
+	else if (!check_const(symtab, right_ast)) {
+		ast->set_str(right_ast->get_str());
+		ast->set_source_info(right_ast->get_source_info());
+
+	}
 }
 
 void ASTVisitor::visit_multiply(struct Node* ast) {
@@ -319,6 +345,15 @@ void ASTVisitor::visit_multiply(struct Node* ast) {
 	const int result = left_ast->get_ival() * right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	if (!check_const(symtab, left_ast)) {
+		ast->set_str(left_ast->get_str());
+		ast->set_source_info(left_ast->get_source_info());
+	}
+	else if (!check_const(symtab, right_ast)) {
+		ast->set_str(right_ast->get_str());
+		ast->set_source_info(right_ast->get_source_info());
+
+	}
 }
 
 void ASTVisitor::visit_divide(struct Node* ast) {
@@ -334,6 +369,15 @@ void ASTVisitor::visit_divide(struct Node* ast) {
 	const int result = left_ast->get_ival() / right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	if (!check_const(symtab, left_ast)) {
+		ast->set_str(left_ast->get_str());
+		ast->set_source_info(left_ast->get_source_info());
+	}
+	else if (!check_const(symtab, right_ast)) {
+		ast->set_str(right_ast->get_str());
+		ast->set_source_info(right_ast->get_source_info());
+
+	}
 }
 
 void ASTVisitor::visit_modulus(struct Node* ast) {
@@ -349,6 +393,15 @@ void ASTVisitor::visit_modulus(struct Node* ast) {
 	const int result = left_ast->get_ival() % right_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(result_type);
+	if (!check_const(symtab, left_ast)) {
+		ast->set_str(left_ast->get_str());
+		ast->set_source_info(left_ast->get_source_info());
+	}
+	else if (!check_const(symtab, right_ast)) {
+		ast->set_str(right_ast->get_str());
+		ast->set_source_info(right_ast->get_source_info());
+
+	}
 }
 
 void ASTVisitor::visit_negate(struct Node* ast) {
@@ -363,6 +416,10 @@ void ASTVisitor::visit_negate(struct Node* ast) {
 	const int result = -operand_ast->get_ival();
 	ast->set_ival(result);
 	ast->set_type(operand_ast->get_type());
+	if (!check_const(symtab, operand_ast)) {
+		ast->set_str(operand_ast->get_str());
+		ast->set_source_info(operand_ast->get_source_info());
+	}
 }
 
 void ASTVisitor::visit_int_literal(struct Node* ast) {
@@ -399,27 +456,45 @@ void ASTVisitor::visit_while(struct Node* ast) {
 }
 
 void ASTVisitor::visit_compare_eq(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	check_operand_types(symtab, left_ast, right_ast);
 }
 
 void ASTVisitor::visit_compare_neq(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	check_operand_types(symtab, left_ast, right_ast);
 }
 
 void ASTVisitor::visit_compare_lt(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	check_operand_types(symtab, left_ast, right_ast);
 }
 
 void ASTVisitor::visit_compare_lte(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	check_operand_types(symtab, left_ast, right_ast);
 }
 
 void ASTVisitor::visit_compare_gt(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	check_operand_types(symtab, left_ast, right_ast);
 }
 
 void ASTVisitor::visit_compare_gte(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto left_ast = ast->get_kid(0);
+	const auto right_ast = ast->get_kid(1);
+	check_operand_types(symtab, left_ast, right_ast);
 }
 
 void ASTVisitor::visit_write(struct Node* ast) {

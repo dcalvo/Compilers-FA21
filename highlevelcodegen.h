@@ -13,6 +13,7 @@ public:
 
 	InstructionSequence* get_iseq();
 	int next_vreg();
+	void free_vreg();
 
 	void visit(struct Node* ast);
 

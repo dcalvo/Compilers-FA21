@@ -12,8 +12,9 @@ HighLevelCodeGen::HighLevelCodeGen(SymbolTable* symtab) {
 	const auto int_type = symtab->lookup("INTEGER")->get_type();
 	const auto char_type = symtab->lookup("CHAR")->get_type();
 	for (const auto sym : symtab->get_syms()) {
-		if (sym->get_kind() == VAR && (sym->get_type() == int_type || sym->get_type() == char_type))
-			sym->set_vreg(next_vreg());
+		if (sym->get_kind() == VAR) {
+			if (sym->get_type() == int_type || sym->get_type() == char_type) sym->set_vreg(next_vreg());
+		}
 	}
 }
 
@@ -26,6 +27,11 @@ InstructionSequence* HighLevelCodeGen::get_iseq() {
 int HighLevelCodeGen::next_vreg() {
 	return _vreg_count++;
 }
+
+void HighLevelCodeGen::free_vreg() {
+	_vreg_count--;
+}
+
 
 void HighLevelCodeGen::visit(struct Node* ast) {
 	int tag = node_get_tag(ast);
@@ -244,11 +250,21 @@ void HighLevelCodeGen::visit_compare_gte(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_write(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto op = ast->get_kid(0)->get_operand();
+	const auto ins = new Instruction(HINS_WRITE_INT, *op);
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_read(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto readreg = new Operand(OPERAND_VREG, next_vreg());
+	auto ins = new Instruction(HINS_READ_INT, *readreg);
+	_iseq->add_instruction(ins);
+	const auto op = ast->get_kid(0)->get_operand();
+	ins = new Instruction(HINS_MOV, *op, *readreg);
+	_iseq->add_instruction(ins);
+	free_vreg(); // no need to keep the temporary read register around
 }
 
 void HighLevelCodeGen::visit_var_ref(struct Node* ast) {

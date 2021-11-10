@@ -20,6 +20,8 @@ Node::Node(int tag)
   , m_ival(0L)
   , m_symtab(nullptr)
   , m_index(0)
+  , m_operand(nullptr)
+  , m_inverted(false)
  {
 }
 
@@ -131,6 +133,15 @@ void Node::set_operand(Operand* operand) {
 
 Operand* Node::get_operand() {
 	return m_operand;
+}
+
+void Node::set_inverted(bool inverted){
+    m_inverted = inverted;
+}
+
+bool Node::is_inverted()
+{
+    return m_inverted;
 }
 
 ////////////////////////////////////////////////////////////////////////

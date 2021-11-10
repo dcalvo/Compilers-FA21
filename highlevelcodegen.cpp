@@ -32,6 +32,9 @@ void HighLevelCodeGen::free_vreg() {
 	_vreg_count--;
 }
 
+std::string HighLevelCodeGen::next_label() {
+	return ".L" + std::to_string(_label_count++);
+}
 
 void HighLevelCodeGen::visit(struct Node* ast) {
 	int tag = node_get_tag(ast);
@@ -210,11 +213,39 @@ void HighLevelCodeGen::visit_assign(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_if(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	// example from the assignment instructions
+	const auto condition_ast = ast->get_kid(0);
+	const auto then_ast = ast->get_kid(1);
+	const auto out_label = next_label();
+	condition_ast->set_inverted(true);
+	condition_ast->set_operand(new Operand(out_label));
+	visit(condition_ast);
+	visit(then_ast);
+	_iseq->define_label(out_label);
 }
 
 void HighLevelCodeGen::visit_if_else(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	// should generate a block of HL instructions like
+	// inverted conditional (jump <else_label>)
+	// then statement
+	// jump <out_label>
+	// <else_label>
+	// else statement
+	// <out_label>
+	const auto condition_ast = ast->get_kid(0);
+	const auto then_ast = ast->get_kid(1);
+	const auto else_ast = ast->get_kid(2);
+	const auto else_label = next_label();
+	const auto out_label = next_label();
+	condition_ast->set_inverted(true);
+	condition_ast->set_operand(new Operand(else_label));
+	visit(condition_ast);
+	visit(then_ast);
+	const auto ins = new Instruction(HINS_JUMP, Operand(out_label));
+	_iseq->add_instruction(ins);
+	_iseq->define_label(else_label);
+	visit(else_ast);
+	_iseq->define_label(out_label);
 }
 
 void HighLevelCodeGen::visit_repeat(struct Node* ast) {
@@ -222,31 +253,90 @@ void HighLevelCodeGen::visit_repeat(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_while(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const auto condition_ast = ast->get_kid(0);
+	const auto instructions_ast = ast->get_kid(1);
+	const auto condition_label = next_label();
+	const auto instructions_label = next_label();
+	// condition needs to know where to jump to if successful
+	condition_ast->set_operand(new Operand(instructions_label));
+	const auto ins = new Instruction(HINS_JUMP, Operand(condition_label));
+	_iseq->add_instruction(ins);
+	_iseq->define_label(instructions_label);
+	visit(instructions_ast);
+	_iseq->define_label(condition_label);
+	visit(condition_ast);
 }
 
 void HighLevelCodeGen::visit_compare_eq(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	_iseq->add_instruction(ins);
+	ins = ast->is_inverted()
+		      ? new Instruction(HINS_JNE, *ast->get_operand())
+		      : new Instruction(HINS_JE, *ast->get_operand());
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_compare_neq(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	_iseq->add_instruction(ins);
+	ins = ast->is_inverted()
+		      ? new Instruction(HINS_JE, *ast->get_operand())
+		      : new Instruction(HINS_JNE, *ast->get_operand());
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_compare_lt(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	_iseq->add_instruction(ins);
+	ins = ast->is_inverted()
+		      ? new Instruction(HINS_JGTE, *ast->get_operand())
+		      : new Instruction(HINS_JLT, *ast->get_operand());
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_compare_lte(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	_iseq->add_instruction(ins);
+	ins = ast->is_inverted()
+		      ? new Instruction(HINS_JGT, *ast->get_operand())
+		      : new Instruction(HINS_JLTE, *ast->get_operand());
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_compare_gt(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	_iseq->add_instruction(ins);
+	ins = ast->is_inverted()
+		      ? new Instruction(HINS_JLTE, *ast->get_operand())
+		      : new Instruction(HINS_JGT, *ast->get_operand());
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_compare_gte(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	_iseq->add_instruction(ins);
+	ins = ast->is_inverted()
+		      ? new Instruction(HINS_JLT, *ast->get_operand())
+		      : new Instruction(HINS_JGTE, *ast->get_operand());
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_write(struct Node* ast) {

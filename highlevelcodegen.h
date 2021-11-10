@@ -2,11 +2,13 @@
 #define HIGHLEVELCODEGEN_H
 #include "cfg.h"
 #include "symtab.h"
+#include <string>
 
 class HighLevelCodeGen {
 	InstructionSequence* _iseq;
 	SymbolTable* symtab;
 	int _vreg_count = 0;
+	int _label_count = 0;
 public:
 	HighLevelCodeGen(SymbolTable* symtab);
 	virtual ~HighLevelCodeGen();
@@ -14,6 +16,7 @@ public:
 	InstructionSequence* get_iseq();
 	int next_vreg();
 	void free_vreg();
+	std::string next_label();
 
 	void visit(struct Node* ast);
 

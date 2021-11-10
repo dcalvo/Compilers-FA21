@@ -14,6 +14,8 @@ void yyerror(const char *fmt, ...);
 int yylex(void);
 %}
 
+%error-verbose
+
 %union {
   struct Node *node;
 }

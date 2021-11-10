@@ -125,6 +125,13 @@ Type *Node::get_type() {
   return nullptr;
 }
 
+void Node::set_operand(Operand* operand) {
+	m_operand = operand;
+}
+
+Operand* Node::get_operand() {
+	return m_operand;
+}
 
 ////////////////////////////////////////////////////////////////////////
 // C API for working with Nodes

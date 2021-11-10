@@ -114,7 +114,7 @@ type
   
 expression_list
   : expression { $$ = node_build1(AST_EXPRESSION_LIST, $1); }
-  | expression expression_list { $$ = node_build2(AST_EXPRESSION_LIST, $1, $2); }
+  | expression TOK_COMMA expression_list { $$ = node_build2(AST_EXPRESSION_LIST, $1, $3); }
   ;
   
 expression

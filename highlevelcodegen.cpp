@@ -249,7 +249,14 @@ void HighLevelCodeGen::visit_if_else(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_repeat(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const auto instructions_ast = ast->get_kid(0);
+	const auto condition_ast = ast->get_kid(1);
+	const auto instructions_label = next_label();
+	_iseq->define_label(instructions_label);
+	visit(instructions_ast);
+	condition_ast->set_operand(new Operand(instructions_label));
+	condition_ast->set_inverted(true); // we want to jump when the comparison is false
+	visit(condition_ast);
 }
 
 void HighLevelCodeGen::visit_while(struct Node* ast) {

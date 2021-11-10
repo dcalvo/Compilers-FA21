@@ -1,7 +1,3 @@
-State 135 conflicts: 9 reduce/reduce
-State 136 conflicts: 9 reduce/reduce
-
-
 Grammar
 
     0 $accept: program $end
@@ -47,7 +43,7 @@ Grammar
    25     | TOK_RECORD vardefn_list TOK_END
 
    26 expression_list: expression
-   27                | expression expression_list
+   27                | expression TOK_COMMA expression_list
 
    28 expression: expression TOK_PLUS term
    29           | expression TOK_MINUS term
@@ -147,7 +143,7 @@ TOK_RPAREN (293) 40
 TOK_LBRACKET (294) 65
 TOK_RBRACKET (295) 65
 TOK_DOT (296) 1 66
-TOK_COMMA (297) 18
+TOK_COMMA (297) 18 27
 
 
 Nonterminals, with rules where they appear
@@ -1405,24 +1401,15 @@ State 106
 State 107
 
    26 expression_list: expression .
-   27                | expression . expression_list
+   27                | expression . TOK_COMMA expression_list
    28 expression: expression . TOK_PLUS term
    29           | expression . TOK_MINUS term
 
-    TOK_IDENT        shift, and go to state 34
-    TOK_INT_LITERAL  shift, and go to state 50
-    TOK_PLUS         shift, and go to state 127
-    TOK_MINUS        shift, and go to state 128
-    TOK_LPAREN       shift, and go to state 53
+    TOK_PLUS   shift, and go to state 86
+    TOK_MINUS  shift, and go to state 87
+    TOK_COMMA  shift, and go to state 127
 
     $default  reduce using rule 26 (expression_list)
-
-    expression_list  go to state 129
-    expression       go to state 107
-    term             go to state 55
-    factor           go to state 56
-    primary          go to state 57
-    designator       go to state 58
 
 
 State 108
@@ -1496,7 +1483,7 @@ State 115
     TOK_ARRAY   shift, and go to state 60
     TOK_RECORD  shift, and go to state 61
 
-    type  go to state 130
+    type  go to state 128
 
 
 State 116
@@ -1583,22 +1570,22 @@ State 123
    52 ifstmt: TOK_IF condition TOK_THEN opt_instructions . TOK_END
    53       | TOK_IF condition TOK_THEN opt_instructions . TOK_ELSE opt_instructions TOK_END
 
-    TOK_END   shift, and go to state 131
-    TOK_ELSE  shift, and go to state 132
+    TOK_END   shift, and go to state 129
+    TOK_ELSE  shift, and go to state 130
 
 
 State 124
 
    54 repeatstmt: TOK_REPEAT opt_instructions TOK_UNTIL condition . TOK_END
 
-    TOK_END  shift, and go to state 133
+    TOK_END  shift, and go to state 131
 
 
 State 125
 
    55 whilestmt: TOK_WHILE condition TOK_DO opt_instructions . TOK_END
 
-    TOK_END  shift, and go to state 134
+    TOK_END  shift, and go to state 132
 
 
 State 126
@@ -1610,8 +1597,7 @@ State 126
 
 State 127
 
-   28 expression: expression TOK_PLUS . term
-   36 factor: TOK_PLUS . factor
+   27 expression_list: expression TOK_COMMA . expression_list
 
     TOK_IDENT        shift, and go to state 34
     TOK_INT_LITERAL  shift, and go to state 50
@@ -1619,51 +1605,29 @@ State 127
     TOK_MINUS        shift, and go to state 52
     TOK_LPAREN       shift, and go to state 53
 
-    term        go to state 110
-    factor      go to state 135
-    primary     go to state 57
-    designator  go to state 58
+    expression_list  go to state 133
+    expression       go to state 107
+    term             go to state 55
+    factor           go to state 56
+    primary          go to state 57
+    designator       go to state 58
 
 
 State 128
-
-   29 expression: expression TOK_MINUS . term
-   35 factor: TOK_MINUS . factor
-
-    TOK_IDENT        shift, and go to state 34
-    TOK_INT_LITERAL  shift, and go to state 50
-    TOK_PLUS         shift, and go to state 51
-    TOK_MINUS        shift, and go to state 52
-    TOK_LPAREN       shift, and go to state 53
-
-    term        go to state 111
-    factor      go to state 136
-    primary     go to state 57
-    designator  go to state 58
-
-
-State 129
-
-   27 expression_list: expression expression_list .
-
-    $default  reduce using rule 27 (expression_list)
-
-
-State 130
 
    24 type: TOK_ARRAY expression TOK_OF type .
 
     $default  reduce using rule 24 (type)
 
 
-State 131
+State 129
 
    52 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_END .
 
     $default  reduce using rule 52 (ifstmt)
 
 
-State 132
+State 130
 
    53 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_ELSE . opt_instructions TOK_END
 
@@ -1676,7 +1640,7 @@ State 132
 
     $default  reduce using rule 42 (opt_instructions)
 
-    opt_instructions  go to state 137
+    opt_instructions  go to state 134
     instructions      go to state 41
     instruction       go to state 42
     assignstmt        go to state 43
@@ -1688,80 +1652,35 @@ State 132
     designator        go to state 49
 
 
-State 133
+State 131
 
    54 repeatstmt: TOK_REPEAT opt_instructions TOK_UNTIL condition TOK_END .
 
     $default  reduce using rule 54 (repeatstmt)
 
 
-State 134
+State 132
 
    55 whilestmt: TOK_WHILE condition TOK_DO opt_instructions TOK_END .
 
     $default  reduce using rule 55 (whilestmt)
 
 
-State 135
+State 133
 
-   34 term: factor .
-   36 factor: TOK_PLUS factor .
+   27 expression_list: expression TOK_COMMA expression_list .
 
-    TOK_IDENT        reduce using rule 34 (term)
-    TOK_IDENT        [reduce using rule 36 (factor)]
-    TOK_INT_LITERAL  reduce using rule 34 (term)
-    TOK_INT_LITERAL  [reduce using rule 36 (factor)]
-    TOK_DIV          reduce using rule 34 (term)
-    TOK_DIV          [reduce using rule 36 (factor)]
-    TOK_MOD          reduce using rule 34 (term)
-    TOK_MOD          [reduce using rule 36 (factor)]
-    TOK_PLUS         reduce using rule 34 (term)
-    TOK_PLUS         [reduce using rule 36 (factor)]
-    TOK_MINUS        reduce using rule 34 (term)
-    TOK_MINUS        [reduce using rule 36 (factor)]
-    TOK_TIMES        reduce using rule 34 (term)
-    TOK_TIMES        [reduce using rule 36 (factor)]
-    TOK_LPAREN       reduce using rule 34 (term)
-    TOK_LPAREN       [reduce using rule 36 (factor)]
-    TOK_RBRACKET     reduce using rule 34 (term)
-    TOK_RBRACKET     [reduce using rule 36 (factor)]
-    $default         reduce using rule 34 (term)
+    $default  reduce using rule 27 (expression_list)
 
 
-State 136
-
-   34 term: factor .
-   35 factor: TOK_MINUS factor .
-
-    TOK_IDENT        reduce using rule 34 (term)
-    TOK_IDENT        [reduce using rule 35 (factor)]
-    TOK_INT_LITERAL  reduce using rule 34 (term)
-    TOK_INT_LITERAL  [reduce using rule 35 (factor)]
-    TOK_DIV          reduce using rule 34 (term)
-    TOK_DIV          [reduce using rule 35 (factor)]
-    TOK_MOD          reduce using rule 34 (term)
-    TOK_MOD          [reduce using rule 35 (factor)]
-    TOK_PLUS         reduce using rule 34 (term)
-    TOK_PLUS         [reduce using rule 35 (factor)]
-    TOK_MINUS        reduce using rule 34 (term)
-    TOK_MINUS        [reduce using rule 35 (factor)]
-    TOK_TIMES        reduce using rule 34 (term)
-    TOK_TIMES        [reduce using rule 35 (factor)]
-    TOK_LPAREN       reduce using rule 34 (term)
-    TOK_LPAREN       [reduce using rule 35 (factor)]
-    TOK_RBRACKET     reduce using rule 34 (term)
-    TOK_RBRACKET     [reduce using rule 35 (factor)]
-    $default         reduce using rule 34 (term)
-
-
-State 137
+State 134
 
    53 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_ELSE opt_instructions . TOK_END
 
-    TOK_END  shift, and go to state 138
+    TOK_END  shift, and go to state 135
 
 
-State 138
+State 135
 
    53 ifstmt: TOK_IF condition TOK_THEN opt_instructions TOK_ELSE opt_instructions TOK_END .
 

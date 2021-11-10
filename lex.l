@@ -36,6 +36,7 @@ void yyerror(const char *fmt, ...);
 "THEN"                   { return create_token(TOK_THEN, yytext); }
 "ELSE"                   { return create_token(TOK_ELSE, yytext); }
 "REPEAT"                 { return create_token(TOK_REPEAT, yytext); }
+"UNTIL"                  { return create_token(TOK_UNTIL, yytext); }
 "WHILE"                  { return create_token(TOK_WHILE, yytext); }
 "DO"                     { return create_token(TOK_DO, yytext); }
 "READ"                   { return create_token(TOK_READ, yytext); }
@@ -48,7 +49,6 @@ void yyerror(const char *fmt, ...);
 ":="                     { return create_token(TOK_ASSIGN, yytext); }
 ";"                      { return create_token(TOK_SEMICOLON, yytext); }
 ":"                      { return create_token(TOK_COLON, yytext); }
-"="                      { return create_token(TOK_EQUALS, yytext); }
 ","                      { return create_token(TOK_COMMA, yytext); }
 "."                      { return create_token(TOK_DOT, yytext); }
 "+"                      { return create_token(TOK_PLUS, yytext); }

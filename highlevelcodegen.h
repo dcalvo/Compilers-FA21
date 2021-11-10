@@ -1,12 +1,14 @@
 #ifndef HIGHLEVELCODEGEN_H
 #define HIGHLEVELCODEGEN_H
 #include "cfg.h"
+#include "symtab.h"
 
 class HighLevelCodeGen {
 	InstructionSequence* _iseq;
+	SymbolTable* symtab;
 	int _vreg_count = 0;
 public:
-	HighLevelCodeGen();
+	HighLevelCodeGen(SymbolTable* symtab);
 	virtual ~HighLevelCodeGen();
 
 	InstructionSequence* get_iseq();

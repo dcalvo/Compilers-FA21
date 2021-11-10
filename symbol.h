@@ -14,6 +14,7 @@ class Symbol {
 	Type* type;
 	SymbolKind kind;
 	int ival;
+	int vreg; // virtual register for code generation
 
 public:
 	Symbol(const std::string& name, Type* type, SymbolKind kind);
@@ -24,6 +25,8 @@ public:
 	SymbolKind get_kind() const;
 	void set_ival(int ival);
 	int get_ival() const;
+	void set_vreg(int vreg);
+	int get_vreg() const;
 };
 
 #endif // SYMBOL_H

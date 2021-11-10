@@ -363,13 +363,15 @@ void ASTVisitor::visit_divide(struct Node* ast) {
 	const auto left_ast = ast->get_kid(0);
 	const auto right_ast = ast->get_kid(1);
 	const auto result_type = check_operand_types(symtab, left_ast, right_ast);
-	if (right_ast->get_ival() == 0) {
+	if (right_ast->get_ival() == 0 && check_const(symtab, right_ast)) {
 		const struct SourceInfo err = right_ast->get_source_info();
 		err_fatal("%s:%d:%d: Error: Illegal division by zero\n", err.filename, err.line, err.col);
 		return;
 	}
-	const int result = left_ast->get_ival() / right_ast->get_ival();
-	ast->set_ival(result);
+	if (check_const(symtab, left_ast) && check_const(symtab, right_ast)) {
+		const int result = left_ast->get_ival() / right_ast->get_ival();
+		ast->set_ival(result);
+	}
 	ast->set_type(result_type);
 	// if either operand is a non-constant, push that info up the tree
 	if (!check_const(symtab, left_ast)) {

@@ -1,12 +1,20 @@
 #include "highlevelcodegen.h"
 #include <cassert>
+#include <iostream>
 #include "node.h"
 #include "grammar_symbols.h"
 #include "ast.h"
 #include "highlevel.h"
 
-HighLevelCodeGen::HighLevelCodeGen() {
+HighLevelCodeGen::HighLevelCodeGen(SymbolTable* symtab) {
 	_iseq = new InstructionSequence();
+	this->symtab = symtab;
+	const auto int_type = symtab->lookup("INTEGER")->get_type();
+	const auto char_type = symtab->lookup("CHAR")->get_type();
+	for (const auto sym : symtab->get_syms()) {
+		if (sym->get_kind() == VAR && (sym->get_type() == int_type || sym->get_type() == char_type))
+			sym->set_vreg(next_vreg());
+	}
 }
 
 HighLevelCodeGen::~HighLevelCodeGen() {}
@@ -188,7 +196,11 @@ void HighLevelCodeGen::visit_instructions(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_assign(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto leftop = ast->get_kid(0)->get_operand();
+	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto ins = new Instruction(HINS_MOV, *leftop, *rightop);
+	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_if(struct Node* ast) {
@@ -240,7 +252,10 @@ void HighLevelCodeGen::visit_read(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_var_ref(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	const struct Node* tok_identifier = ast->get_kid(0);
+	const auto sym = symtab->lookup(tok_identifier->get_str());
+	const auto destreg = new Operand(OPERAND_VREG, sym->get_vreg());
+	ast->set_operand(destreg);
 }
 
 void HighLevelCodeGen::visit_array_element_ref(struct Node* ast) {

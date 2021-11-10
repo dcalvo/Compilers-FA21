@@ -20,6 +20,7 @@ private:
 	bool print_symbol_table = false;
 	bool print_high_level = false;
 	Node* root;
+	SymbolTable* symtab;
 public:
 	Context(struct Node* ast);
 	~Context();
@@ -51,10 +52,11 @@ void Context::build_symtab() {
 	const auto symtab = new SymbolTable(print_symbol_table);
 	ASTVisitor visitor(symtab);
 	visitor.visit(root);
+	this->symtab = symtab;
 }
 
 void Context::generate_hcode() {
-	HighLevelCodeGen code_gen;
+	HighLevelCodeGen code_gen(symtab);
 	code_gen.visit(root);
 	if (print_high_level) {
 		const auto iseq = code_gen.get_iseq();

@@ -8,6 +8,10 @@ std::string Symbol::get_name() const {
 	return name;
 }
 
+Type* Symbol::get_type() const {
+	return type;
+}
+
 std::string Symbol::get_kind_name() const {
 	switch (kind) {
 	case 0:
@@ -29,11 +33,14 @@ void Symbol::set_ival(int ival) {
 	this->ival = ival;
 }
 
-
 int Symbol::get_ival() const {
 	return ival;
 }
 
-Type* Symbol::get_type() const {
-	return type;
+void Symbol::set_vreg(int vreg) {
+	this->vreg = vreg;
+}
+
+int Symbol::get_vreg() const {
+	return vreg;
 }

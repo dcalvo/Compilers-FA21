@@ -38,11 +38,11 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 		vreg_refs[i] = offset;
 		offset += 8;
 	}
-	std::cout << symtab->get_offset() << '\n';
-	std::cout << vregs_used << '\n';
-	for (const auto thing : vreg_refs) {
-		std::cout << thing.first << '\t' << thing.second << '\n';
-	}
+	//std::cout << symtab->get_offset() << '\n';
+	//std::cout << vregs_used << '\n';
+	//for (const auto thing : vreg_refs) {
+	//	std::cout << thing.first << '\t' << thing.second << '\n';
+	//}
 	// offset %rsp by array & record memory
 	auto ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, offset), Operand(OPERAND_MREG, MREG_RSP));
 	_iseq->define_label("main");
@@ -195,7 +195,14 @@ void LowLevelCodeGen::generate_negate(Instruction* hlins) {
 	assert(false);
 }
 
-void LowLevelCodeGen::generate_localaddr(Instruction* hlins) { }
+void LowLevelCodeGen::generate_localaddr(Instruction* hlins) {
+	const auto destreg = vreg_ref((*hlins)[0]);
+	const auto sourcereg = vreg_ref((*hlins)[1]);
+	const auto effective_address = Operand(OPERAND_MREG_MEMREF_OFFSET, MREG_RSP, sourcereg.get_int_value());
+	const auto ins = new Instruction(MINS_LEAQ, effective_address, destreg);
+	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+}
 
 void LowLevelCodeGen::generate_load_int(Instruction* hlins) {
 	generate_mov(hlins);
@@ -205,9 +212,27 @@ void LowLevelCodeGen::generate_store_int(Instruction* hlins) {
 	generate_mov(hlins);
 }
 
-void LowLevelCodeGen::generate_read_int(Instruction* hlins) {}
+void LowLevelCodeGen::generate_read_int(Instruction* hlins) {
+	const auto destreg = vreg_ref((*hlins)[0]);
+	auto ins = new Instruction(MINS_MOVQ, Operand("s_readint_fmt", true), Operand(OPERAND_MREG, MREG_RDI));
+	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_LEAQ, destreg, Operand(OPERAND_MREG, MREG_RSI));
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_CALL, Operand("scanf"));
+	_iseq->add_instruction(ins);
+}
 
-void LowLevelCodeGen::generate_write_int(Instruction* hlins) {}
+void LowLevelCodeGen::generate_write_int(Instruction* hlins) {
+	const auto sourcereg = vreg_ref((*hlins)[0]);
+	auto ins = new Instruction(MINS_MOVQ, Operand("s_writeint_fmt", true), Operand(OPERAND_MREG, MREG_RDI));
+	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_LEAQ, sourcereg, Operand(OPERAND_MREG, MREG_RSI));
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_CALL, Operand("printf"));
+	_iseq->add_instruction(ins);
+}
 
 void LowLevelCodeGen::generate_jump(Instruction* hlins) {
 	const auto label = (*hlins)[0];

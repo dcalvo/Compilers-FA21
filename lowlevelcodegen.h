@@ -5,6 +5,7 @@
 #include <map>
 
 class LowLevelCodeGen {
+	int vregs_used;
 	InstructionSequence* _iseq;
 	SymbolTable* symtab;
 	std::map<int, int> vreg_refs;

@@ -78,6 +78,8 @@ void Context::generate_lcode() {
 	const auto low_level_iseq = code_gen.get_iseq();
 	PrintX86_64InstructionSequence printer(low_level_iseq);
 	printer.print();
+	// end of program
+	std::cout << "\tret" << '\n';
 }
 
 ////////////////////////////////////////////////////////////////////////

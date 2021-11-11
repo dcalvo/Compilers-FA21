@@ -4,10 +4,10 @@
 #include "node.h"
 #include "grammar_symbols.h"
 #include "ast.h"
-#include "highlevel.h"
 
 HighLevelCodeGen::HighLevelCodeGen(SymbolTable* symtab) {
 	_iseq = new InstructionSequence();
+	_printer = new PrintHighLevelInstructionSequence(_iseq);
 	this->symtab = symtab;
 	const auto int_type = symtab->lookup("INTEGER")->get_type();
 	const auto char_type = symtab->lookup("CHAR")->get_type();
@@ -140,6 +140,7 @@ void HighLevelCodeGen::visit_add(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	const auto ins = new Instruction(HINS_INT_ADD, *destreg, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -150,6 +151,7 @@ void HighLevelCodeGen::visit_subtract(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	const auto ins = new Instruction(HINS_INT_SUB, *destreg, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -160,6 +162,7 @@ void HighLevelCodeGen::visit_multiply(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	const auto ins = new Instruction(HINS_INT_MUL, *destreg, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -170,6 +173,7 @@ void HighLevelCodeGen::visit_divide(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	const auto ins = new Instruction(HINS_INT_DIV, *destreg, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -180,6 +184,7 @@ void HighLevelCodeGen::visit_modulus(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	const auto ins = new Instruction(HINS_INT_MOD, *destreg, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -189,6 +194,7 @@ void HighLevelCodeGen::visit_negate(struct Node* ast) {
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
 	const auto op = ast->get_kid(0)->get_operand();
 	const auto ins = new Instruction(HINS_INT_NEGATE, *destreg, *op);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -198,6 +204,7 @@ void HighLevelCodeGen::visit_int_literal(struct Node* ast) {
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
 	const Operand immval(OPERAND_INT_LITERAL, ast->get_ival());
 	const auto ins = new Instruction(HINS_LOAD_ICONST, *destreg, immval);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(destreg);
 }
@@ -218,6 +225,7 @@ void HighLevelCodeGen::visit_assign(struct Node* ast) {
 		for (int i = 0; i < ast->get_kid(0)->get_num_vregs_used() + 1; ++i) free_vreg();
 	}
 	else ins = new Instruction(HINS_MOV, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -251,6 +259,7 @@ void HighLevelCodeGen::visit_if_else(struct Node* ast) {
 	visit(condition_ast);
 	visit(then_ast);
 	const auto ins = new Instruction(HINS_JUMP, Operand(out_label));
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	_iseq->define_label(else_label);
 	visit(else_ast);
@@ -276,6 +285,7 @@ void HighLevelCodeGen::visit_while(struct Node* ast) {
 	// condition needs to know where to jump to if successful
 	condition_ast->set_operand(new Operand(instructions_label));
 	const auto ins = new Instruction(HINS_JUMP, Operand(condition_label));
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	_iseq->define_label(instructions_label);
 	visit(instructions_ast);
@@ -288,10 +298,12 @@ void HighLevelCodeGen::visit_compare_eq(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ins = ast->is_inverted()
 		      ? new Instruction(HINS_JNE, *ast->get_operand())
 		      : new Instruction(HINS_JE, *ast->get_operand());
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -300,10 +312,12 @@ void HighLevelCodeGen::visit_compare_neq(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ins = ast->is_inverted()
 		      ? new Instruction(HINS_JE, *ast->get_operand())
 		      : new Instruction(HINS_JNE, *ast->get_operand());
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -312,10 +326,12 @@ void HighLevelCodeGen::visit_compare_lt(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ins = ast->is_inverted()
 		      ? new Instruction(HINS_JGTE, *ast->get_operand())
 		      : new Instruction(HINS_JLT, *ast->get_operand());
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -324,10 +340,12 @@ void HighLevelCodeGen::visit_compare_lte(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ins = ast->is_inverted()
 		      ? new Instruction(HINS_JGT, *ast->get_operand())
 		      : new Instruction(HINS_JLTE, *ast->get_operand());
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -336,10 +354,12 @@ void HighLevelCodeGen::visit_compare_gt(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ins = ast->is_inverted()
 		      ? new Instruction(HINS_JLTE, *ast->get_operand())
 		      : new Instruction(HINS_JGT, *ast->get_operand());
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -348,10 +368,12 @@ void HighLevelCodeGen::visit_compare_gte(struct Node* ast) {
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ins = ast->is_inverted()
 		      ? new Instruction(HINS_JLT, *ast->get_operand())
 		      : new Instruction(HINS_JGTE, *ast->get_operand());
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -362,6 +384,7 @@ void HighLevelCodeGen::visit_write(struct Node* ast) {
 	if (op->is_memref()) {
 		const auto writereg = new Operand(OPERAND_VREG, next_vreg());
 		ins = new Instruction(HINS_LOAD_INT, *writereg, *op);
+		ins->set_comment(_printer->format_instruction(ins));
 		_iseq->add_instruction(ins);
 		// free the vregs used to calculate the memref
 		// also free the temporary writereg
@@ -370,6 +393,7 @@ void HighLevelCodeGen::visit_write(struct Node* ast) {
 		op = writereg;
 	}
 	ins = new Instruction(HINS_WRITE_INT, *op);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 }
 
@@ -378,6 +402,7 @@ void HighLevelCodeGen::visit_read(struct Node* ast) {
 	auto op = ast->get_kid(0)->get_operand();
 	const auto readreg = new Operand(OPERAND_VREG, next_vreg());
 	auto ins = new Instruction(HINS_READ_INT, *readreg);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	if (op->is_memref()) {
 		ins = new Instruction(HINS_STORE_INT, *op, *readreg);
@@ -385,6 +410,7 @@ void HighLevelCodeGen::visit_read(struct Node* ast) {
 		for (int i = 0; i < ast->get_kid(0)->get_num_vregs_used(); ++i) free_vreg();
 	}
 	else ins = new Instruction(HINS_MOV, *op, *readreg);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	free_vreg(); // no need to keep the temporary read register around
 }
@@ -402,6 +428,7 @@ void HighLevelCodeGen::visit_var_ref(struct Node* ast) {
 	const auto basereg = new Operand(OPERAND_VREG, next_vreg());
 	const int base_addr = sym->get_offset();
 	auto ins = new Instruction(HINS_LOCALADDR, *basereg, Operand(OPERAND_INT_LITERAL, base_addr));
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	ast->set_operand(basereg);
 	ast->set_vregs_used(1); // base addr
@@ -416,10 +443,12 @@ void HighLevelCodeGen::visit_array_element_ref(struct Node* ast) {
 	const auto offsetreg = Operand(OPERAND_VREG, next_vreg());
 	auto ins = new Instruction(HINS_INT_MUL, offsetreg, *index_ast->get_operand(),
 	                           Operand(OPERAND_INT_LITERAL, elem_size));
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	// add the offset to base
 	auto destreg = new Operand(OPERAND_VREG, next_vreg());
 	ins = new Instruction(HINS_INT_ADD, *destreg, *identifier_ast->get_operand(), offsetreg);
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	// set the memref for this node
 	*destreg = destreg->to_memref();
@@ -437,6 +466,7 @@ void HighLevelCodeGen::visit_field_ref(struct Node* ast) {
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
 	const auto ins = new Instruction(HINS_INT_ADD, *destreg, *identifier_ast->get_operand(),
 	                                 Operand(OPERAND_INT_LITERAL, offset));
+	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
 	// set the memref for this node
 	*destreg = destreg->to_memref();

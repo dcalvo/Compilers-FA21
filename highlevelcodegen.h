@@ -3,8 +3,10 @@
 #include "cfg.h"
 #include "symtab.h"
 #include <string>
+#include "highlevel.h"
 
 class HighLevelCodeGen {
+	PrintHighLevelInstructionSequence* _printer;
 	InstructionSequence* _iseq;
 	SymbolTable* symtab;
 	int _vreg_count = 0;

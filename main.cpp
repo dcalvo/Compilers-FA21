@@ -91,6 +91,7 @@ int main(int argc, char** argv) {
 			context_set_flag(ctx, 'i');
 		}
 		context_build_symtab(ctx);
+		if (mode == COMPILE) context_compile(ctx);
 	}
 
 	return 0;

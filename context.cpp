@@ -9,6 +9,8 @@
 #include "context.h"
 #include "highlevelcodegen.h"
 #include "highlevel.h"
+#include "lowlevelcodegen.h"
+#include "x86_64.h"
 #include <iostream>
 
 ////////////////////////////////////////////////////////////////////////
@@ -21,6 +23,8 @@ private:
 	bool print_high_level = false;
 	Node* root;
 	SymbolTable* symtab;
+	InstructionSequence* high_level_iseq;
+	int vregs_used = 0;
 public:
 	Context(struct Node* ast);
 	~Context();
@@ -29,6 +33,7 @@ public:
 
 	void build_symtab();
 	void generate_hcode();
+	void generate_lcode();
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -53,13 +58,6 @@ void Context::build_symtab() {
 	ASTVisitor visitor(symtab);
 	visitor.visit(root);
 	this->symtab = symtab;
-	//for (const auto sym : symtab->get_syms()) {
-	//	std::cout << sym->get_name() << '\t';
-	//	std::cout << sym->get_kind_name() << '\t';
-	//	std::cout << sym->get_type()->to_string() << '\t';
-	//	std::cout << sym->get_type()->get_size() << '\t';
-	//	std::cout << sym->get_offset() << '\n';
-	//}
 }
 
 void Context::generate_hcode() {
@@ -70,6 +68,16 @@ void Context::generate_hcode() {
 		const auto printer = new PrintHighLevelInstructionSequence(iseq);
 		printer->print();
 	}
+	high_level_iseq = code_gen.get_iseq();
+	vregs_used = code_gen.get_vreg_count();
+}
+
+void Context::generate_lcode() {
+	LowLevelCodeGen code_gen(symtab, vregs_used);
+	code_gen.generate(high_level_iseq);
+	const auto low_level_iseq = code_gen.get_iseq();
+	PrintX86_64InstructionSequence printer(low_level_iseq);
+	printer.print();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -93,4 +101,6 @@ void context_build_symtab(struct Context* ctx) {
 	ctx->generate_hcode();
 }
 
-void context_check_types(struct Context* ctx) {}
+void context_compile(struct Context* ctx) {
+	ctx->generate_lcode();
+}

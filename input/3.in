@@ -1,19 +1,9 @@
-PROGRAM person;
-  TYPE Person = RECORD
-    name: ARRAY 10 OF CHAR;
-    age: INTEGER;
-  END;
-  TYPE Parent = RECORD
-    details: Person;
-    children: ARRAY 2 OF Person;
-  END;
-  VAR parents : ARRAY 4 OF Parent;
-  VAR i, j, k : INTEGER;
-
+PROGRAM arith10;
+  VAR x, y, z : INTEGER;
 
 BEGIN
-  READ i;
-  READ j;
-  READ k;
-  READ parents[i].children[j].name[k];
+  READ x;
+  READ y;
+  z := x DIV y;
+  WRITE z;
 END.

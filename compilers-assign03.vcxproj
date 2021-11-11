@@ -107,6 +107,7 @@
     <ClCompile Include="grammar_symbols.c" />
     <ClCompile Include="highlevel.cpp" />
     <ClCompile Include="highlevelcodegen.cpp" />
+    <ClCompile Include="lowlevelcodegen.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="node.cpp" />
     <ClCompile Include="parse.tab.c" />
@@ -126,6 +127,7 @@
     <ClInclude Include="grammar_symbols.h" />
     <ClInclude Include="highlevel.h" />
     <ClInclude Include="highlevelcodegen.h" />
+    <ClInclude Include="lowlevelcodegen.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="parse.tab.h" />
     <ClInclude Include="symbol.h" />

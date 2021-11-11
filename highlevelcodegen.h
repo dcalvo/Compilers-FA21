@@ -9,7 +9,8 @@ class HighLevelCodeGen {
 	PrintHighLevelInstructionSequence* _printer;
 	InstructionSequence* _iseq;
 	SymbolTable* symtab;
-	int _vreg_count = 0;
+	int _vreg_count = 0; // vregs in use
+	int _max_vreg_count = 0; // how many vregs we used at once
 	int _label_count = 0;
 public:
 	HighLevelCodeGen(SymbolTable* symtab);
@@ -18,8 +19,10 @@ public:
 	InstructionSequence* get_iseq();
 	int next_vreg();
 	void free_vreg();
+	int get_vreg_count();
 	std::string next_label();
 
+	void emit(Instruction* ins);
 	void visit(struct Node* ast);
 
 	virtual void visit_program(struct Node* ast);

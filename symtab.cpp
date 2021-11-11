@@ -9,15 +9,16 @@ void SymbolTable::get_depth(int& counter) {
 }
 
 // Constructor for nested scopes
-SymbolTable::SymbolTable(SymbolTable* symtab): parent(symtab), print_symbols(symtab->print_symbols) {}
+SymbolTable::SymbolTable(SymbolTable* symtab): parent(symtab), print_symbols(symtab->print_symbols),
+                                               current_offset(0) {}
 
-SymbolTable::SymbolTable(bool print_symbols): print_symbols(print_symbols) {
+SymbolTable::SymbolTable(bool print_symbols): print_symbols(print_symbols), current_offset(0) {
 	// Define INTEGER primitive
-	const auto int_type = new PrimitiveType("INTEGER");
+	const auto int_type = new PrimitiveType("INTEGER", 8);
 	const auto int_sym = new Symbol("INTEGER", int_type, TYPE);
 	syms.push_back(int_sym);
 	// Define CHAR primitive
-	const auto char_type = new PrimitiveType("CHAR");
+	const auto char_type = new PrimitiveType("CHAR", 1);
 	const auto char_sym = new Symbol("CHAR", char_type, TYPE);
 	syms.push_back(char_sym);
 }
@@ -37,6 +38,20 @@ bool SymbolTable::define(Symbol* sym) {
 	for (const auto defined_sym : syms) {
 		if (sym->get_name() == defined_sym->get_name()) return false; // symbol is already defined in this scope
 	}
+	// calculate offset in memory for arrays and records
+	const auto int_type = lookup("INTEGER")->get_type();
+	const auto char_type = lookup("CHAR")->get_type();
+	if (sym->get_kind() == VAR) {
+		int depth = 0;
+		get_depth(depth);
+		// the var should either be nested (in a record) or a non-primitive local variable
+		if (depth || (sym->get_type() != int_type && sym->get_type() != char_type)) {
+			sym->set_offset(current_offset);
+			current_offset += sym->get_type()->get_size();
+		}
+
+	}
+	// add symbol
 	syms.push_back(sym);
 	if (print_symbols) {
 		int depth = 0;
@@ -49,4 +64,8 @@ bool SymbolTable::define(Symbol* sym) {
 
 std::vector<Symbol*> SymbolTable::get_syms() const {
 	return syms;
+}
+
+int SymbolTable::get_offset() const {
+	return current_offset;
 }

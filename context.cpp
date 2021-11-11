@@ -53,6 +53,13 @@ void Context::build_symtab() {
 	ASTVisitor visitor(symtab);
 	visitor.visit(root);
 	this->symtab = symtab;
+	//for (const auto sym : symtab->get_syms()) {
+	//	std::cout << sym->get_name() << '\t';
+	//	std::cout << sym->get_kind_name() << '\t';
+	//	std::cout << sym->get_type()->to_string() << '\t';
+	//	std::cout << sym->get_type()->get_size() << '\t';
+	//	std::cout << sym->get_offset() << '\n';
+	//}
 }
 
 void Context::generate_hcode() {
@@ -64,7 +71,6 @@ void Context::generate_hcode() {
 		printer->print();
 	}
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 // Context API functions

@@ -14,6 +14,7 @@ HighLevelCodeGen::HighLevelCodeGen(SymbolTable* symtab) {
 	for (const auto sym : symtab->get_syms()) {
 		if (sym->get_kind() == VAR) {
 			if (sym->get_type() == int_type || sym->get_type() == char_type) sym->set_vreg(next_vreg());
+			else sym->set_vreg(-1);
 		}
 	}
 }
@@ -133,6 +134,7 @@ void HighLevelCodeGen::visit_program(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_add(struct Node* ast) {
+
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
 	const auto leftop = ast->get_kid(0)->get_operand();
@@ -208,7 +210,14 @@ void HighLevelCodeGen::visit_assign(struct Node* ast) {
 	recur_on_children(ast);
 	const auto leftop = ast->get_kid(0)->get_operand();
 	const auto rightop = ast->get_kid(1)->get_operand();
-	const auto ins = new Instruction(HINS_MOV, *leftop, *rightop);
+	Instruction* ins;
+	if (leftop->is_memref()) {
+		ins = new Instruction(HINS_STORE_INT, *leftop, *rightop);
+		// free the vregs used to calculate the memref
+		// also free the RHS vreg since it's in memory now
+		for (int i = 0; i < ast->get_kid(0)->get_num_vregs_used() + 1; ++i) free_vreg();
+	}
+	else ins = new Instruction(HINS_MOV, *leftop, *rightop);
 	_iseq->add_instruction(ins);
 }
 
@@ -348,18 +357,34 @@ void HighLevelCodeGen::visit_compare_gte(struct Node* ast) {
 
 void HighLevelCodeGen::visit_write(struct Node* ast) {
 	recur_on_children(ast);
-	const auto op = ast->get_kid(0)->get_operand();
-	const auto ins = new Instruction(HINS_WRITE_INT, *op);
+	auto op = ast->get_kid(0)->get_operand();
+	Instruction* ins;
+	if (op->is_memref()) {
+		const auto writereg = new Operand(OPERAND_VREG, next_vreg());
+		ins = new Instruction(HINS_LOAD_INT, *writereg, *op);
+		_iseq->add_instruction(ins);
+		// free the vregs used to calculate the memref
+		// also free the temporary writereg
+		for (int i = 0; i < ast->get_kid(0)->get_num_vregs_used() + 1; ++i) free_vreg();
+		// change the write op to the new writereg
+		op = writereg;
+	}
+	ins = new Instruction(HINS_WRITE_INT, *op);
 	_iseq->add_instruction(ins);
 }
 
 void HighLevelCodeGen::visit_read(struct Node* ast) {
 	recur_on_children(ast);
+	auto op = ast->get_kid(0)->get_operand();
 	const auto readreg = new Operand(OPERAND_VREG, next_vreg());
 	auto ins = new Instruction(HINS_READ_INT, *readreg);
 	_iseq->add_instruction(ins);
-	const auto op = ast->get_kid(0)->get_operand();
-	ins = new Instruction(HINS_MOV, *op, *readreg);
+	if (op->is_memref()) {
+		ins = new Instruction(HINS_STORE_INT, *op, *readreg);
+		// free the vregs used to calculate the memref
+		for (int i = 0; i < ast->get_kid(0)->get_num_vregs_used(); ++i) free_vreg();
+	}
+	else ins = new Instruction(HINS_MOV, *op, *readreg);
 	_iseq->add_instruction(ins);
 	free_vreg(); // no need to keep the temporary read register around
 }
@@ -367,16 +392,56 @@ void HighLevelCodeGen::visit_read(struct Node* ast) {
 void HighLevelCodeGen::visit_var_ref(struct Node* ast) {
 	const struct Node* tok_identifier = ast->get_kid(0);
 	const auto sym = symtab->lookup(tok_identifier->get_str());
-	const auto destreg = new Operand(OPERAND_VREG, sym->get_vreg());
-	ast->set_operand(destreg);
+	// symbol is a local variable
+	if (sym->get_vreg() >= 0) {
+		const auto destreg = new Operand(OPERAND_VREG, sym->get_vreg());
+		ast->set_operand(destreg);
+		return;
+	}
+	// get the base address
+	const auto basereg = new Operand(OPERAND_VREG, next_vreg());
+	const int base_addr = sym->get_offset();
+	auto ins = new Instruction(HINS_LOCALADDR, *basereg, Operand(OPERAND_INT_LITERAL, base_addr));
+	_iseq->add_instruction(ins);
+	ast->set_operand(basereg);
+	ast->set_vregs_used(1); // base addr
 }
 
 void HighLevelCodeGen::visit_array_element_ref(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto identifier_ast = ast->get_kid(0);
+	const auto index_ast = ast->get_kid(1);
+	// calculate the offset
+	const int elem_size = dynamic_cast<ArrayType*>(identifier_ast->get_type())->get_type()->get_size();
+	const auto offsetreg = Operand(OPERAND_VREG, next_vreg());
+	auto ins = new Instruction(HINS_INT_MUL, offsetreg, *index_ast->get_operand(),
+	                           Operand(OPERAND_INT_LITERAL, elem_size));
+	_iseq->add_instruction(ins);
+	// add the offset to base
+	auto destreg = new Operand(OPERAND_VREG, next_vreg());
+	ins = new Instruction(HINS_INT_ADD, *destreg, *identifier_ast->get_operand(), offsetreg);
+	_iseq->add_instruction(ins);
+	// set the memref for this node
+	*destreg = destreg->to_memref();
+	ast->set_operand(destreg);
+	ast->set_vregs_used(identifier_ast->get_num_vregs_used() + 2); // offset and base+offset
 }
 
 void HighLevelCodeGen::visit_field_ref(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	const auto identifier_ast = ast->get_kid(0);
+	const auto field_ast = ast->get_kid(1);
+	const auto record_symtab = dynamic_cast<RecordType*>(identifier_ast->get_type())->get_symtab();
+	const int offset = record_symtab->lookup(field_ast->get_str())->get_offset();
+	// add offset to base
+	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
+	const auto ins = new Instruction(HINS_INT_ADD, *destreg, *identifier_ast->get_operand(),
+	                                 Operand(OPERAND_INT_LITERAL, offset));
+	_iseq->add_instruction(ins);
+	// set the memref for this node
+	*destreg = destreg->to_memref();
+	ast->set_operand(destreg);
+	ast->set_vregs_used(identifier_ast->get_num_vregs_used() + 1); // base+offset
 }
 
 void HighLevelCodeGen::visit_identifier_list(struct Node* ast) {
@@ -384,10 +449,12 @@ void HighLevelCodeGen::visit_identifier_list(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_expression_list(struct Node* ast) {
-	recur_on_children(ast); // default behavior
+	recur_on_children(ast);
+	// pass info up the tree
+	ast->set_operand(ast->get_kid(0)->get_operand());
 }
 
-void HighLevelCodeGen::visit_identifier(struct Node* ast) {
+void HighLevelCodeGen::visit_identifier(Node* ast) {
 	recur_on_children(ast); // default behavior
 }
 

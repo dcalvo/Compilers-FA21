@@ -44,3 +44,11 @@ void Symbol::set_vreg(int vreg) {
 int Symbol::get_vreg() const {
 	return vreg;
 }
+
+void Symbol::set_offset(int offset) {
+	this->offset = offset;
+}
+
+int Symbol::get_offset() const {
+	return offset;
+}

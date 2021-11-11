@@ -37,6 +37,7 @@ private:
 	Type* m_type;
 	Operand* m_operand;
 	bool m_inverted; // whether to compile an inverted comparison
+	int m_vregs_used; // how many vregs were used during address calculation
 
 	// copy ctor and assignment operator disallowed
 	Node(const Node&);
@@ -73,6 +74,8 @@ public:
 	Operand* get_operand();
 	void set_inverted(bool inverted);
 	bool is_inverted();
+	void set_vregs_used(int vregs_used);
+	int get_num_vregs_used();
 };
 
 extern "C" {

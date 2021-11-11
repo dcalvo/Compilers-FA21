@@ -1,17 +1,20 @@
+
 PROGRAM person;
   TYPE Person = RECORD
-    name: ARRAY 10 * 5 OF CHAR;
+    name: ARRAY 10 OF CHAR;
     age: INTEGER;
   END;
-  VAR p: Person;
+  TYPE Parent = RECORD
+    details: Person;
+    children: ARRAY 2 OF Person;
+  END;
+  VAR parents : ARRAY 4 OF Parent;
+  VAR i, j, k : INTEGER;
+
 
 BEGIN
-  READ p.name;
-  READ p.age;
-
-  IF p.age >= 18 THEN
-    WRITE 1;
-  ELSE
-    WRITE 0;
-  END;
+  i := 1;
+  j := 0;
+  k := 5;
+  READ parents[i].children[j].name[k];
 END.

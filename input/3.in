@@ -1,11 +1,19 @@
-PROGRAM add;
-  VAR a, b, sum: INTEGER;
-  VAR x : ARRAY 10 OF INTEGER;
+PROGRAM person;
+  TYPE Person = RECORD
+    name: ARRAY 10 OF CHAR;
+    age: INTEGER;
+  END;
+  TYPE Parent = RECORD
+    details: Person;
+    children: ARRAY 2 OF Person;
+  END;
+  VAR parents : ARRAY 4 OF Parent;
+  VAR i, j, k : INTEGER;
+
 
 BEGIN
-  --READ x;
-  READ a;
-  READ b;
-  sum := a + b;
-  WRITE x;
+  READ i;
+  READ j;
+  READ k;
+  READ parents[i].children[j].name[k];
 END.

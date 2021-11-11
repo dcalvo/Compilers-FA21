@@ -263,7 +263,7 @@ void ASTVisitor::visit_record_type(struct Node* ast) {
 		const auto field = new RecordField(sym->get_type(), sym->get_name());
 		fields.push_back(field);
 	}
-	const auto record_type = new RecordType(fields);
+	const auto record_type = new RecordType(fields, record_symtab);
 	ast->set_type(record_type);
 }
 

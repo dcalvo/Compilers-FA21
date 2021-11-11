@@ -135,13 +135,21 @@ Operand* Node::get_operand() {
 	return m_operand;
 }
 
-void Node::set_inverted(bool inverted){
+void Node::set_inverted(bool inverted) {
     m_inverted = inverted;
 }
 
 bool Node::is_inverted()
 {
     return m_inverted;
+}
+
+void Node::set_vregs_used(int vregs_used) {
+    m_vregs_used = vregs_used;
+}
+
+int Node::get_num_vregs_used() {
+    return m_vregs_used;
 }
 
 ////////////////////////////////////////////////////////////////////////

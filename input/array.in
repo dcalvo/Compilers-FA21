@@ -1,0 +1,14 @@
+PROGRAM array01;
+  VAR arr : ARRAY 10 OF INTEGER;
+  VAR i : INTEGER;
+
+BEGIN
+  arr[0] := 42;
+  arr[1] := 17;
+  i := 7;
+  arr[i] := 99;
+
+  WRITE arr[0];
+  WRITE arr[1];
+  WRITE arr[i];
+END.

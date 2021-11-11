@@ -1,0 +1,11 @@
+PROGRAM loop02;
+  VAR i : INTEGER;
+
+BEGIN
+  i := 0;
+  REPEAT
+    i := i + 1;
+    WRITE i;
+  UNTIL i = 10 
+  END;
+END.

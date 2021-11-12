@@ -27,7 +27,7 @@ InstructionSequence* HighLevelCodeGen::get_iseq() {
 
 int HighLevelCodeGen::next_vreg() {
 	int vregs = _vreg_count++;
-	_max_vreg_count = std::max(vregs, _max_vreg_count);
+	_max_vreg_count = std::max(_vreg_count, _max_vreg_count);
 	return vregs;
 }
 

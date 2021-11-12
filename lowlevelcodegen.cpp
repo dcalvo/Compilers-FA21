@@ -221,7 +221,16 @@ void LowLevelCodeGen::generate_read_int(Instruction* hlins) {
 	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_LEAQ, destreg, Operand(OPERAND_MREG, MREG_RSI));
 	_iseq->add_instruction(ins);
+	// zero out %rax
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
+	_iseq->add_instruction(ins);
+	// stack alignment
+	ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
+	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_CALL, Operand("scanf"));
+	_iseq->add_instruction(ins);
+	// stack alignment
+	ins = new Instruction(MINS_ADDQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
 	_iseq->add_instruction(ins);
 }
 
@@ -232,7 +241,7 @@ void LowLevelCodeGen::generate_write_int(Instruction* hlins) {
 	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_MOVQ, sourcereg, Operand(OPERAND_MREG, MREG_RSI));
 	_iseq->add_instruction(ins);
-	// zero out %rax otherwise printf segfaults
+	// zero out %rax
 	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
 	_iseq->add_instruction(ins);
 	// stack alignment
@@ -300,7 +309,7 @@ void LowLevelCodeGen::generate_compare(Instruction* hlins) {
 	auto ins = new Instruction(MINS_MOVQ, leftreg, Operand(OPERAND_MREG, MREG_R10));
 	ins->set_comment(hlins->get_comment());
 	_iseq->add_instruction(ins);
-	ins = new Instruction(MINS_CMPQ, Operand(OPERAND_MREG, MREG_R10), rightreg);
+	ins = new Instruction(MINS_CMPQ, rightreg, Operand(OPERAND_MREG, MREG_R10));
 	_iseq->add_instruction(ins);
 }
 

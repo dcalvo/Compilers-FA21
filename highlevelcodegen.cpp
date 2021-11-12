@@ -46,7 +46,6 @@ std::string HighLevelCodeGen::next_label() {
 void HighLevelCodeGen::emit(Instruction* const ins) {
 	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
-	PrintHighLevelInstructionSequence test(_iseq);
 }
 
 void HighLevelCodeGen::visit(struct Node* ast) {

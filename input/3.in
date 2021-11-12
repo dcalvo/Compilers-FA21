@@ -1,6 +1,11 @@
-PROGRAM arith10;
-  VAR x: INTEGER;
+PROGRAM array01;
+  VAR arr : ARRAY 10 OF INTEGER;
+  VAR n: INTEGER;
 
 BEGIN
-  READ x;
+  IF n < arr[0] THEN
+      n := 0 + arr[1];
+    ELSE
+	  n := 0;
+   END;
 END.

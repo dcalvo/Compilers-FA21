@@ -3,7 +3,7 @@ PROGRAM array01;
 
 BEGIN
   arr[0] := 42;
-  arr[1] := 17;
+  arr[1] := 17 + arr[0];
 
   WRITE arr[0];
   WRITE arr[1];

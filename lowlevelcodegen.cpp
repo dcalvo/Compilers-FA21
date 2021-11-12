@@ -13,8 +13,7 @@ InstructionSequence* LowLevelCodeGen::get_iseq() const {
 }
 
 Operand LowLevelCodeGen::vreg_ref(Operand op) {
-	// op is actually a literal
-	if (!op.has_base_reg()) return op;
+	if (!op.has_base_reg()) return op; // op is actually a literal
 	const int offset = vreg_refs.at(op.get_base_reg());
 	return Operand(OPERAND_MREG_MEMREF_OFFSET, MREG_RSP, offset);
 }
@@ -211,7 +210,15 @@ void LowLevelCodeGen::generate_mod(Instruction* hlins) {
 }
 
 void LowLevelCodeGen::generate_negate(Instruction* hlins) {
-	assert(false);
+	const auto destreg = vreg_ref((*hlins)[0]);
+	const auto sourcereg = vreg_ref((*hlins)[1]);
+	auto ins = new Instruction(MINS_MOVQ, sourcereg, Operand(OPERAND_MREG, MREG_RAX));
+	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_IMULQ, Operand(OPERAND_INT_LITERAL, -1), Operand(OPERAND_MREG, MREG_RAX));
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_MREG, MREG_RAX), destreg);
+	_iseq->add_instruction(ins);
 }
 
 void LowLevelCodeGen::generate_localaddr(Instruction* hlins) {
@@ -259,8 +266,14 @@ void LowLevelCodeGen::generate_read_int(Instruction* hlins) {
 	//// zero out %rax
 	//ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
 	//_iseq->add_instruction(ins);
+	//// stack alignment
+	//ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
+	//_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_CALL, Operand("scanf"));
 	_iseq->add_instruction(ins);
+	//// stack alignment
+	//ins = new Instruction(MINS_ADDQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
+	//_iseq->add_instruction(ins);
 }
 
 void LowLevelCodeGen::generate_write_int(Instruction* hlins) {

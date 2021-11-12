@@ -140,6 +140,15 @@ void HighLevelCodeGen::visit(struct Node* ast) {
 	}
 }
 
+// Transforms the given op if it a memory reference by adding a load instruction and returning a new op
+Operand* HighLevelCodeGen::load_op(Operand* op) {
+	if (!op->is_memref()) return op;
+	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
+	const auto ins = new Instruction(HINS_LOAD_INT, *destreg, *op);
+	emit(ins);
+	return destreg;
+}
+
 void HighLevelCodeGen::visit_program(struct Node* ast) {
 	visit(ast->get_kid(2)); // visit only the instructions
 }
@@ -148,8 +157,8 @@ void HighLevelCodeGen::visit_add(struct Node* ast) {
 
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	const auto ins = new Instruction(HINS_INT_ADD, *destreg, *leftop, *rightop);
 	emit(ins);
 	ast->set_operand(destreg);
@@ -158,8 +167,8 @@ void HighLevelCodeGen::visit_add(struct Node* ast) {
 void HighLevelCodeGen::visit_subtract(struct Node* ast) {
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	const auto ins = new Instruction(HINS_INT_SUB, *destreg, *leftop, *rightop);
 	emit(ins);
 	ast->set_operand(destreg);
@@ -168,8 +177,8 @@ void HighLevelCodeGen::visit_subtract(struct Node* ast) {
 void HighLevelCodeGen::visit_multiply(struct Node* ast) {
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	const auto ins = new Instruction(HINS_INT_MUL, *destreg, *leftop, *rightop);
 	emit(ins);
 	ast->set_operand(destreg);
@@ -178,8 +187,8 @@ void HighLevelCodeGen::visit_multiply(struct Node* ast) {
 void HighLevelCodeGen::visit_divide(struct Node* ast) {
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	const auto ins = new Instruction(HINS_INT_DIV, *destreg, *leftop, *rightop);
 	emit(ins);
 	ast->set_operand(destreg);
@@ -188,8 +197,8 @@ void HighLevelCodeGen::visit_divide(struct Node* ast) {
 void HighLevelCodeGen::visit_modulus(struct Node* ast) {
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	const auto ins = new Instruction(HINS_INT_MOD, *destreg, *leftop, *rightop);
 	emit(ins);
 	ast->set_operand(destreg);
@@ -198,7 +207,7 @@ void HighLevelCodeGen::visit_modulus(struct Node* ast) {
 void HighLevelCodeGen::visit_negate(struct Node* ast) {
 	recur_on_children(ast);
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const auto op = ast->get_kid(0)->get_operand();
+	const auto op = load_op(ast->get_kid(0)->get_operand());
 	const auto ins = new Instruction(HINS_INT_NEGATE, *destreg, *op);
 	emit(ins);
 	ast->set_operand(destreg);
@@ -302,8 +311,8 @@ void HighLevelCodeGen::visit_while(struct Node* ast) {
 
 void HighLevelCodeGen::visit_compare_eq(struct Node* ast) {
 	recur_on_children(ast);
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
 	emit(ins);
 	ins = ast->is_inverted()
@@ -314,8 +323,8 @@ void HighLevelCodeGen::visit_compare_eq(struct Node* ast) {
 
 void HighLevelCodeGen::visit_compare_neq(struct Node* ast) {
 	recur_on_children(ast);
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
 	emit(ins);
 	ins = ast->is_inverted()
@@ -326,8 +335,8 @@ void HighLevelCodeGen::visit_compare_neq(struct Node* ast) {
 
 void HighLevelCodeGen::visit_compare_lt(struct Node* ast) {
 	recur_on_children(ast);
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
 	emit(ins);
 	ins = ast->is_inverted()
@@ -338,8 +347,8 @@ void HighLevelCodeGen::visit_compare_lt(struct Node* ast) {
 
 void HighLevelCodeGen::visit_compare_lte(struct Node* ast) {
 	recur_on_children(ast);
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
 	emit(ins);
 	ins = ast->is_inverted()
@@ -350,8 +359,8 @@ void HighLevelCodeGen::visit_compare_lte(struct Node* ast) {
 
 void HighLevelCodeGen::visit_compare_gt(struct Node* ast) {
 	recur_on_children(ast);
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
 	emit(ins);
 	ins = ast->is_inverted()
@@ -362,8 +371,8 @@ void HighLevelCodeGen::visit_compare_gt(struct Node* ast) {
 
 void HighLevelCodeGen::visit_compare_gte(struct Node* ast) {
 	recur_on_children(ast);
-	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto leftop = load_op(ast->get_kid(0)->get_operand());
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	auto ins = new Instruction(HINS_INT_COMPARE, *leftop, *rightop);
 	emit(ins);
 	ins = ast->is_inverted()

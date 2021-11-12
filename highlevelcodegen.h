@@ -25,6 +25,7 @@ public:
 	void emit(Instruction* ins);
 	void visit(struct Node* ast);
 
+	Operand* load_op(Operand* op);
 	virtual void visit_program(struct Node* ast);
 	virtual void visit_add(struct Node* ast);
 	virtual void visit_subtract(struct Node* ast);

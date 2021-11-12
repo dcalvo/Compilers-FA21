@@ -4,6 +4,6 @@ PROGRAM arith10;
 BEGIN
   READ x;
   READ y;
-  z := x DIV y;
+  z := x MOD y;
   WRITE z;
 END.

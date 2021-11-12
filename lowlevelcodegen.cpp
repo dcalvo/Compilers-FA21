@@ -52,6 +52,7 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 		int opcode = hlins->get_opcode();
 		switch (opcode) {
 		case HINS_NOP:
+			generate_nop(hlins);
 			break;
 		case HINS_LOAD_ICONST:
 			generate_load_int_literal(hlins);
@@ -126,6 +127,11 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 	_iseq->add_instruction(ins);
 }
 
+void LowLevelCodeGen::generate_nop(Instruction* hlins) {
+	const auto ins = new Instruction(MINS_NOP);
+	_iseq->add_instruction(ins);
+}
+
 void LowLevelCodeGen::generate_load_int_literal(Instruction* hlins) {
 	const auto destreg = vreg_ref((*hlins)[0]);
 	const auto sourcereg = vreg_ref((*hlins)[1]);
@@ -174,21 +180,33 @@ void LowLevelCodeGen::generate_mul(Instruction* hlins) {
 }
 
 void LowLevelCodeGen::generate_div(Instruction* hlins) {
-	assert(false);
 	const auto destreg = vreg_ref((*hlins)[0]);
 	const auto leftreg = vreg_ref((*hlins)[1]);
 	const auto rightreg = vreg_ref((*hlins)[2]);
 	auto ins = new Instruction(MINS_MOVQ, leftreg, Operand(OPERAND_MREG, MREG_RAX));
 	ins->set_comment(hlins->get_comment());
 	_iseq->add_instruction(ins);
-	ins = new Instruction(MINS_NOP, rightreg, Operand(OPERAND_MREG, MREG_RAX)); // TODO: implement DIV instruction
+	ins = new Instruction(MINS_CQTO);
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_IDIVQ, rightreg);
 	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_MREG, MREG_RAX), destreg);
 	_iseq->add_instruction(ins);
 }
 
 void LowLevelCodeGen::generate_mod(Instruction* hlins) {
-	assert(false);
+	const auto destreg = vreg_ref((*hlins)[0]);
+	const auto leftreg = vreg_ref((*hlins)[1]);
+	const auto rightreg = vreg_ref((*hlins)[2]);
+	auto ins = new Instruction(MINS_MOVQ, leftreg, Operand(OPERAND_MREG, MREG_RAX));
+	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_CQTO);
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_IDIVQ, rightreg);
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_MREG, MREG_RDX), destreg);
+	_iseq->add_instruction(ins);
 }
 
 void LowLevelCodeGen::generate_negate(Instruction* hlins) {

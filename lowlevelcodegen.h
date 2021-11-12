@@ -18,6 +18,7 @@ public:
 
 	Operand vreg_ref(Operand op);
 	void generate(InstructionSequence* hl_iseq);
+	void generate_nop(Instruction* hlins);
 	void generate_load_int_literal(Instruction* hlins);
 	void generate_add(Instruction* hlins);
 	void generate_sub(Instruction* hlins);

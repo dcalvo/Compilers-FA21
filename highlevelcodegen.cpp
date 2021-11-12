@@ -46,6 +46,7 @@ std::string HighLevelCodeGen::next_label() {
 void HighLevelCodeGen::emit(Instruction* const ins) {
 	ins->set_comment(_printer->format_instruction(ins));
 	_iseq->add_instruction(ins);
+	PrintHighLevelInstructionSequence test(_iseq);
 }
 
 void HighLevelCodeGen::visit(struct Node* ast) {
@@ -245,7 +246,7 @@ void HighLevelCodeGen::visit_if(struct Node* ast) {
 }
 
 void HighLevelCodeGen::visit_if_else(struct Node* ast) {
-	// should generate a block of HL instructions like
+	// should generate a block of HL instructions like 
 	// inverted conditional (jump <else_label>)
 	// then statement
 	// jump <out_label>
@@ -265,6 +266,9 @@ void HighLevelCodeGen::visit_if_else(struct Node* ast) {
 	emit(ins);
 	_iseq->define_label(else_label);
 	visit(else_ast);
+	// in case we're in a nested control block
+	if (_iseq->has_label_at_end())
+		emit(new Instruction(HINS_NOP));
 	_iseq->define_label(out_label);
 }
 
@@ -290,6 +294,9 @@ void HighLevelCodeGen::visit_while(struct Node* ast) {
 	emit(ins);
 	_iseq->define_label(instructions_label);
 	visit(instructions_ast);
+	// in case we're in a nested control block
+	if (_iseq->has_label_at_end())
+		emit(new Instruction(HINS_NOP));
 	_iseq->define_label(condition_label);
 	visit(condition_ast);
 }

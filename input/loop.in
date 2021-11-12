@@ -1,11 +1,30 @@
-PROGRAM loop02;
-  VAR i : INTEGER;
+PROGRAM loop04;
+  VAR n, keep_going, count : INTEGER;
 
 BEGIN
-  i := 0;
-  REPEAT
-    i := i + 1;
-    WRITE i;
-  UNTIL i = 10 
+  keep_going := 1;
+  count := 0;
+
+  WHILE keep_going # 0 DO
+    READ n;
+    IF n < 0 THEN
+      keep_going := 0;
+    ELSE
+      IF n >= 50 THEN
+        IF n MOD 2 = 0 THEN
+          count := count + 1;
+        ELSE
+          count := count + 100;
+        END;
+      ELSE
+        IF n MOD 2 = 0 THEN
+          count := count + 10000;
+        ELSE
+          count := count + 1000000;
+        END;
+      END;
+    END;
   END;
+
+  WRITE count;
 END.

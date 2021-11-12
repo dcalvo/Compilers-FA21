@@ -20,6 +20,7 @@ void context_destroy(struct Context* ctx);
 void context_set_flag(struct Context* ctx, char flag);
 
 void context_build_symtab(struct Context* ctx);
+void context_generate_hl_code(struct Context* ctx);
 void context_compile(struct Context* ctx);
 
 #ifdef __cplusplus

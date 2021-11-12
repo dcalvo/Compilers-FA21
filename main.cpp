@@ -86,12 +86,13 @@ int main(int argc, char** argv) {
 		struct Context* ctx = context_create(g_program);
 		if (mode == PRINT_SYMBOL_TABLE) {
 			context_set_flag(ctx, 's'); // tell Context to print symbol table info
+			context_build_symtab(ctx);
 		}
 		else if (mode == PRINT_HIGH_LEVEL) {
 			context_set_flag(ctx, 'i');
+			context_generate_hl_code(ctx);
 		}
-		context_build_symtab(ctx);
-		if (mode == COMPILE) context_compile(ctx);
+		context_compile(ctx);
 	}
 
 	return 0;

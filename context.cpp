@@ -98,9 +98,15 @@ void context_set_flag(struct Context* ctx, char flag) {
 
 void context_build_symtab(struct Context* ctx) {
 	ctx->build_symtab();
+}
+
+void context_generate_hl_code(struct Context* ctx) {
+	ctx->build_symtab();
 	ctx->generate_hcode();
 }
 
 void context_compile(struct Context* ctx) {
+	ctx->build_symtab();
+	ctx->generate_hcode();
 	ctx->generate_lcode();
 }

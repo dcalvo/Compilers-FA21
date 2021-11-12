@@ -229,7 +229,7 @@ void HighLevelCodeGen::visit_instructions(struct Node* ast) {
 void HighLevelCodeGen::visit_assign(struct Node* ast) {
 	recur_on_children(ast);
 	const auto leftop = ast->get_kid(0)->get_operand();
-	const auto rightop = ast->get_kid(1)->get_operand();
+	const auto rightop = load_op(ast->get_kid(1)->get_operand());
 	Instruction* ins;
 	if (leftop->is_memref()) {
 		ins = new Instruction(HINS_STORE_INT, *leftop, *rightop);
@@ -425,11 +425,12 @@ void HighLevelCodeGen::visit_var_ref(struct Node* ast) {
 		return;
 	}
 	// get the base address
-	const auto basereg = new Operand(OPERAND_VREG, next_vreg());
+	auto destreg = new Operand(OPERAND_VREG, next_vreg());
 	const int base_addr = sym->get_offset();
-	auto ins = new Instruction(HINS_LOCALADDR, *basereg, Operand(OPERAND_INT_LITERAL, base_addr));
+	auto ins = new Instruction(HINS_LOCALADDR, *destreg, Operand(OPERAND_INT_LITERAL, base_addr));
 	emit(ins);
-	ast->set_operand(basereg);
+	if (sym->get_kind() == CONST) *destreg = destreg->to_memref();
+	ast->set_operand(destreg);
 	ast->set_vregs_used(1); // base addr
 }
 

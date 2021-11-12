@@ -35,16 +35,24 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 		vreg_refs[i] = offset;
 		offset += 8;
 	}
-	//std::cout << symtab->get_offset() << '\n';
-	//std::cout << vregs_used << '\n';
-	//for (const auto thing : vreg_refs) {
-	//	std::cout << thing.first << '\t' << thing.second << '\n';
-	//}
-	// offset %rsp by array & record memory
+	// align to 16 byte boundary
+	offset += offset % 16;
 	auto ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, offset), Operand(OPERAND_MREG, MREG_RSP));
 	_iseq->define_label("main");
 	_iseq->add_instruction(ins);
 	// generate program
+	// load constants into memory
+	ins = new Instruction(MINS_NOP);
+	ins->set_comment("load constants");
+	_iseq->add_instruction(ins);
+	for (const auto sym : symtab->get_syms()) {
+		if (sym->get_kind() == CONST) {
+			const auto memref = Operand(OPERAND_MREG_MEMREF_OFFSET, MREG_RSP, sym->get_offset());
+			ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, sym->get_ival()), memref);
+			_iseq->add_instruction(ins);
+		}
+	}
+	// generate instructions
 	for (unsigned int i = 0; i < hl_iseq->get_length(); i++) {
 		if (hl_iseq->has_label(i)) _iseq->define_label(hl_iseq->get_label(i));
 		const auto hlins = hl_iseq->get_instruction(i);
@@ -124,6 +132,8 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 	ins = new Instruction(MINS_ADDQ, Operand(OPERAND_INT_LITERAL, offset), Operand(OPERAND_MREG, MREG_RSP));
 	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_RET);
 	_iseq->add_instruction(ins);
 }
 
@@ -263,17 +273,17 @@ void LowLevelCodeGen::generate_read_int(Instruction* hlins) {
 	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_LEAQ, destreg, Operand(OPERAND_MREG, MREG_RSI));
 	_iseq->add_instruction(ins);
-	//// zero out %rax
-	//ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
-	//_iseq->add_instruction(ins);
-	//// stack alignment
-	//ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
-	//_iseq->add_instruction(ins);
+	// zero out %rax
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
+	_iseq->add_instruction(ins);
+	// stack alignment
+	ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
+	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_CALL, Operand("scanf"));
 	_iseq->add_instruction(ins);
-	//// stack alignment
-	//ins = new Instruction(MINS_ADDQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
-	//_iseq->add_instruction(ins);
+	// stack alignment
+	ins = new Instruction(MINS_ADDQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
+	_iseq->add_instruction(ins);
 }
 
 void LowLevelCodeGen::generate_write_int(Instruction* hlins) {

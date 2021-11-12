@@ -51,6 +51,11 @@ bool SymbolTable::define(Symbol* sym) {
 		}
 
 	}
+	else if (sym->get_kind() == CONST) {
+		// we'll store constants in memory
+		sym->set_offset(current_offset);
+		current_offset += sym->get_type()->get_size();
+	}
 	// add symbol
 	syms.push_back(sym);
 	if (print_symbols) {

@@ -13,12 +13,10 @@ InstructionSequence* LowLevelCodeGen::get_iseq() const {
 }
 
 Operand LowLevelCodeGen::vreg_ref(Operand op) {
-	if (op.has_base_reg()) {
-		const int offset = vreg_refs.at(op.get_base_reg());
-		return Operand(OPERAND_MREG_MEMREF_OFFSET, MREG_RSP, offset);
-	}
 	// op is actually a literal
-	return Operand(OPERAND_INT_LITERAL, op.get_int_value());
+	if (!op.has_base_reg()) return op;
+	const int offset = vreg_refs.at(op.get_base_reg());
+	return Operand(OPERAND_MREG_MEMREF_OFFSET, MREG_RSP, offset);
 }
 
 void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
@@ -129,7 +127,9 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 }
 
 void LowLevelCodeGen::generate_load_int_literal(Instruction* hlins) {
-	const auto ins = new Instruction(MINS_MOVQ, (*hlins)[1], vreg_ref((*hlins)[0]));
+	const auto destreg = vreg_ref((*hlins)[0]);
+	const auto sourcereg = vreg_ref((*hlins)[1]);
+	const auto ins = new Instruction(MINS_MOVQ, sourcereg, destreg);
 	ins->set_comment(hlins->get_comment());
 	_iseq->add_instruction(ins);
 }
@@ -199,8 +199,10 @@ void LowLevelCodeGen::generate_localaddr(Instruction* hlins) {
 	const auto destreg = vreg_ref((*hlins)[0]);
 	const auto sourcereg = vreg_ref((*hlins)[1]);
 	const auto effective_address = Operand(OPERAND_MREG_MEMREF_OFFSET, MREG_RSP, sourcereg.get_int_value());
-	const auto ins = new Instruction(MINS_LEAQ, effective_address, destreg);
+	auto ins = new Instruction(MINS_LEAQ, effective_address, Operand(OPERAND_MREG, MREG_R10));
 	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_MREG, MREG_R10), destreg);
 	_iseq->add_instruction(ins);
 }
 
@@ -228,9 +230,18 @@ void LowLevelCodeGen::generate_write_int(Instruction* hlins) {
 	auto ins = new Instruction(MINS_MOVQ, Operand("s_writeint_fmt", true), Operand(OPERAND_MREG, MREG_RDI));
 	ins->set_comment(hlins->get_comment());
 	_iseq->add_instruction(ins);
-	ins = new Instruction(MINS_LEAQ, sourcereg, Operand(OPERAND_MREG, MREG_RSI));
+	ins = new Instruction(MINS_MOVQ, sourcereg, Operand(OPERAND_MREG, MREG_RSI));
+	_iseq->add_instruction(ins);
+	// zero out %rax otherwise printf segfaults
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_INT_LITERAL, 0), Operand(OPERAND_MREG, MREG_RAX));
+	_iseq->add_instruction(ins);
+	// stack alignment
+	ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
 	_iseq->add_instruction(ins);
 	ins = new Instruction(MINS_CALL, Operand("printf"));
+	_iseq->add_instruction(ins);
+	// stack alignment
+	ins = new Instruction(MINS_ADDQ, Operand(OPERAND_INT_LITERAL, 8), Operand(OPERAND_MREG, MREG_RSP));
 	_iseq->add_instruction(ins);
 }
 
@@ -286,15 +297,19 @@ void LowLevelCodeGen::generate_jgte(Instruction* hlins) {
 void LowLevelCodeGen::generate_compare(Instruction* hlins) {
 	const auto leftreg = vreg_ref((*hlins)[0]);
 	const auto rightreg = vreg_ref((*hlins)[1]);
-	const auto ins = new Instruction(MINS_CMPQ, leftreg, rightreg);
+	auto ins = new Instruction(MINS_MOVQ, leftreg, Operand(OPERAND_MREG, MREG_R10));
 	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_CMPQ, Operand(OPERAND_MREG, MREG_R10), rightreg);
 	_iseq->add_instruction(ins);
 }
 
 void LowLevelCodeGen::generate_mov(Instruction* hlins) {
 	const auto destreg = vreg_ref((*hlins)[0]);
 	const auto sourcereg = vreg_ref((*hlins)[1]);
-	const auto ins = new Instruction(MINS_MOVQ, sourcereg, destreg);
+	auto ins = new Instruction(MINS_MOVQ, sourcereg, Operand(OPERAND_MREG, MREG_R10));
 	ins->set_comment(hlins->get_comment());
+	_iseq->add_instruction(ins);
+	ins = new Instruction(MINS_MOVQ, Operand(OPERAND_MREG, MREG_R10), destreg);
 	_iseq->add_instruction(ins);
 }

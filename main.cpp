@@ -21,6 +21,7 @@ void print_usage(void) {
 		"   -g    print AST as graph (DOT/graphviz)\n"
 		"   -s    print symbol table information\n"
 		"   -i    print high level code gen information\n"
+		"   -o    optimize before emitting target assembly language\n"
 	);
 }
 
@@ -30,6 +31,7 @@ enum Mode {
 	PRINT_SYMBOL_TABLE,
 	PRINT_HIGH_LEVEL,
 	COMPILE,
+	COMPILE_OPTIMIZED
 };
 
 int main(int argc, char** argv) {
@@ -39,7 +41,7 @@ int main(int argc, char** argv) {
 	int mode = COMPILE;
 	int opt;
 
-	while ((opt = getopt(argc, argv, "pgsi")) != -1) {
+	while ((opt = getopt(argc, argv, "pgsio")) != -1) {
 		switch (opt) {
 		case 'p':
 			mode = PRINT_AST;
@@ -55,6 +57,10 @@ int main(int argc, char** argv) {
 
 		case 'i':
 			mode = PRINT_HIGH_LEVEL;
+			break;
+
+		case 'o':
+			mode = COMPILE_OPTIMIZED;
 			break;
 
 		case '?':
@@ -91,6 +97,9 @@ int main(int argc, char** argv) {
 		else if (mode == PRINT_HIGH_LEVEL) {
 			context_set_flag(ctx, 'i');
 			context_generate_hl_code(ctx);
+		}
+		else if (mode == COMPILE_OPTIMIZED) {
+			context_set_flag(ctx, 'o');
 		}
 		context_compile(ctx);
 	}

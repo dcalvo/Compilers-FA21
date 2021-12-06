@@ -51,4 +51,21 @@ public:
 	std::string get_mreg_name(int regnum) override;
 };
 
+class X86_64ControlFlowGraphBuilder : public ControlFlowGraphBuilder {
+public:
+	X86_64ControlFlowGraphBuilder(InstructionSequence* iseq);
+	~X86_64ControlFlowGraphBuilder() override;
+
+	bool is_branch(Instruction* ins) override;
+	bool falls_through(Instruction* ins) override;
+};
+
+class X86_64ControlFlowGraphPrinter : public ControlFlowGraphPrinter {
+public:
+	X86_64ControlFlowGraphPrinter(ControlFlowGraph* cfg);
+	~X86_64ControlFlowGraphPrinter();
+
+	void print_basic_block(BasicBlock* bb) override;
+};
+
 #endif // X86_64_H

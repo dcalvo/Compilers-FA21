@@ -21,6 +21,7 @@ struct Context {
 private:
 	bool print_symbol_table = false;
 	bool print_high_level = false;
+	bool optimize = false;
 	Node* root;
 	SymbolTable* symtab;
 	InstructionSequence* high_level_iseq;
@@ -49,8 +50,9 @@ Context::~Context() {}
 void Context::set_flag(char flag) {
 	if (flag == 's') print_symbol_table = true;
 	else if (flag == 'i') print_high_level = true;
+	else if (flag == 'o') optimize = true;
 	else
-		assert(false); // we only support 's' right now
+		assert(false);
 }
 
 void Context::build_symtab() {
@@ -75,7 +77,10 @@ void Context::generate_hcode() {
 void Context::generate_lcode() {
 	LowLevelCodeGen code_gen(symtab, vregs_used);
 	code_gen.generate(high_level_iseq);
-	const auto low_level_iseq = code_gen.get_iseq();
+	auto low_level_iseq = code_gen.get_iseq();
+	if (optimize) {
+		low_level_iseq = new InstructionSequence;
+	}
 	PrintX86_64InstructionSequence printer(low_level_iseq);
 	printer.print();
 }

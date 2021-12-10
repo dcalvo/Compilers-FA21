@@ -9,7 +9,9 @@ class ControlFlowGraph;
 class ControlFlowGraphTransform {
 private:
 	ControlFlowGraph* m_cfg;
-	LiveVregs::LiveSet m_live_set;
+	LiveVregs* m_live_vregs;
+	ControlFlowGraph* prune(ControlFlowGraph* cfg);
+	InstructionSequence* prune_basic_block(BasicBlock* iseq);
 
 public:
 	ControlFlowGraphTransform(ControlFlowGraph* cfg);

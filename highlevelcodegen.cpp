@@ -216,8 +216,8 @@ void HighLevelCodeGen::visit_negate(struct Node* ast) {
 void HighLevelCodeGen::visit_int_literal(struct Node* ast) {
 	// example from the assignment instructions
 	const auto destreg = new Operand(OPERAND_VREG, next_vreg());
-	const Operand immval(OPERAND_INT_LITERAL, ast->get_ival());
-	const auto ins = new Instruction(HINS_LOAD_ICONST, *destreg, immval);
+	const auto immval = new Operand(OPERAND_INT_LITERAL, ast->get_ival());
+	const auto ins = new Instruction(HINS_LOAD_ICONST, *destreg, *immval);
 	emit(ins);
 	ast->set_operand(destreg);
 }

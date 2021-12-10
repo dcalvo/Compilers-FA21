@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "x86_64.h"
+
 PrintHighLevelInstructionSequence::PrintHighLevelInstructionSequence(InstructionSequence* ins)
 	: PrintInstructionSequence(ins) {}
 
@@ -40,8 +42,45 @@ std::string PrintHighLevelInstructionSequence::get_opcode_name(int opcode) {
 
 std::string PrintHighLevelInstructionSequence::get_mreg_name(int regnum) {
 	// high level instructions should not use machine registers
-	assert(false);
-	return "<invalid>";
+	const char* s;
+	switch (regnum) {
+	case MREG_RAX: s = "%rax";
+		break;
+	case MREG_RBX: s = "%rbx";
+		break;
+	case MREG_RCX: s = "%rcx";
+		break;
+	case MREG_RDX: s = "%rdx";
+		break;
+	case MREG_RDI: s = "%rdi";
+		break;
+	case MREG_RSI: s = "%rsi";
+		break;
+	case MREG_RSP: s = "%rsp";
+		break;
+	case MREG_RBP: s = "%rbp";
+		break;
+	case MREG_R8: s = "%r8";
+		break;
+	case MREG_R9: s = "%r9";
+		break;
+	case MREG_R10: s = "%r10";
+		break;
+	case MREG_R11: s = "%r11";
+		break;
+	case MREG_R12: s = "%r12";
+		break;
+	case MREG_R13: s = "%r13";
+		break;
+	case MREG_R14: s = "%r14";
+		break;
+	case MREG_R15: s = "%r15";
+		break;
+	default:
+		assert(false);
+		s = "<invalid>";
+	}
+	return std::string(s);
 }
 
 HighLevelControlFlowGraphBuilder::HighLevelControlFlowGraphBuilder(InstructionSequence* iseq)

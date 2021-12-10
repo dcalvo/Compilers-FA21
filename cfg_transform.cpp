@@ -19,8 +19,8 @@ ControlFlowGraph* ControlFlowGraphTransform::get_orig_cfg() {
 
 ControlFlowGraph* ControlFlowGraphTransform::transform_cfg() {
 	auto result = new ControlFlowGraph();
-	auto v = new LiveVregs(m_cfg);
-	v->execute();
+	//auto v = new LiveVregs(m_cfg);
+	//v->execute();
 
 	// map of basic blocks of original CFG to basic blocks in transformed CFG
 	std::map<BasicBlock*, BasicBlock*> block_map;
@@ -29,10 +29,10 @@ ControlFlowGraph* ControlFlowGraphTransform::transform_cfg() {
 	for (auto i = m_cfg->bb_begin(); i != m_cfg->bb_end(); ++i) {
 		BasicBlock* orig = *i;
 
-		// transform the instructions
-		m_live_set = v->get_fact_at_beginning_of_block(orig);
-		LiveVregsControlFlowGraphPrinter printer(m_cfg, v);
-		printer.print_basic_block(orig);
+		//// transform the instructions
+		//m_live_set = v->get_fact_at_end_of_block(orig);
+		//LiveVregsControlFlowGraphPrinter printer(m_cfg, v);
+		//printer.print_basic_block(orig);
 		InstructionSequence* result_iseq = transform_basic_block(orig);
 
 		// create result basic block
@@ -60,7 +60,73 @@ ControlFlowGraph* ControlFlowGraphTransform::transform_cfg() {
 			result->create_edge(transformed_source, transformed_target, orig_edge->get_kind());
 		}
 	}
+	result = prune(result);
+	return result;
+}
 
+ControlFlowGraph* ControlFlowGraphTransform::prune(ControlFlowGraph* cfg) {
+	m_cfg = cfg;
+	m_live_vregs = new LiveVregs(cfg);
+	m_live_vregs->execute();
+	auto result = new ControlFlowGraph();
+	// map of basic blocks of original CFG to basic blocks in transformed CFG
+	std::map<BasicBlock*, BasicBlock*> block_map;
+	// iterate over all basic blocks, transforming each one
+	for (auto i = cfg->bb_begin(); i != cfg->bb_end(); ++i) {
+		BasicBlock* orig = *i;
+
+		//// transform the instructions
+		InstructionSequence* result_iseq = prune_basic_block(orig);
+
+		// create result basic block
+		BasicBlock* result_bb = result->create_basic_block(orig->get_kind(), orig->get_label());
+		block_map[orig] = result_bb;
+
+		// copy instructions into result basic block
+		for (auto j = result_iseq->cbegin(); j != result_iseq->cend(); ++j) {
+			result_bb->add_instruction((*j)->duplicate());
+		}
+
+		delete result_iseq;
+	}
+
+	// add edges to transformed CFG
+	for (auto i = cfg->bb_begin(); i != cfg->bb_end(); ++i) {
+		BasicBlock* orig = *i;
+		const ControlFlowGraph::EdgeList& outgoing_edges = cfg->get_outgoing_edges(orig);
+		for (auto j = outgoing_edges.cbegin(); j != outgoing_edges.cend(); ++j) {
+			Edge* orig_edge = *j;
+
+			BasicBlock* transformed_source = block_map[orig_edge->get_source()];
+			BasicBlock* transformed_target = block_map[orig_edge->get_target()];
+
+			result->create_edge(transformed_source, transformed_target, orig_edge->get_kind());
+		}
+	}
+	return result;
+}
+
+InstructionSequence* ControlFlowGraphTransform::prune_basic_block(BasicBlock* iseq) {
+	if (iseq->get_length() == 0) return iseq;
+	std::queue<int> mregs({
+		MREG_RAX, MREG_RBX, MREG_RCX, MREG_RDX,
+		MREG_R8, MREG_R9, MREG_R11, MREG_R12,
+		MREG_R13, MREG_R14, MREG_R15,
+	});
+	std::unordered_map<int, int> vreg_to_mreg;
+	LiveVregsControlFlowGraphPrinter printer(m_cfg, m_live_vregs);
+	auto result = new InstructionSequence();
+	for (unsigned i = 0; i < iseq->get_length(); i++) {
+		auto ins = iseq->get_instruction(i)->duplicate();
+		const auto set = m_live_vregs->get_fact_at_end_of_block(iseq);
+		if (ins->get_opcode() == HINS_LOAD_ICONST)
+			if (!set.test(ins->get_operand(0).get_base_reg()))
+				continue;
+		if (ins->get_opcode() == HINS_MOV)
+			if (!set.test(ins->get_operand(0).get_base_reg()) && ins->get_operand(1).get_kind() == OPERAND_INT_LITERAL)
+				continue;
+		result->add_instruction(ins);
+	}
 	return result;
 }
 
@@ -249,9 +315,34 @@ InstructionSequence* HighLevelControlFlowGraphTransform::transform_basic_block(I
 				result->add_instruction(ins);
 				break;
 			}
+		case HINS_INT_NEGATE:
+			{
+				break;
+			}
+		case HINS_READ_INT:
+			{
+				const Operand dest_op = ins->get_operand(0);
+				const int dest_vn = lvn++;
+				vreg_to_vn[dest_op.get_base_reg()] = dest_vn;
+				vn_to_vregs[dest_vn].push_back(dest_op.get_base_reg());
+				result->add_instruction(ins);
+				break;
+			}
 		default:
 			result->add_instruction(ins);
 			break;
+		}
+		ins = result->get_last();
+		for (unsigned j = 1; j < ins->get_num_operands(); j++) {
+			auto op = ins->get_operand(j);
+			if (op.get_kind() == OPERAND_LABEL || op.get_kind() == OPERAND_INT_LITERAL) continue;
+			int vreg = op.get_base_reg();
+			if (vreg_to_vn.find(vreg) != vreg_to_vn.end()) {
+				int vn = vreg_to_vn[vreg];
+				// if it's a constant
+				if (vn_to_const.find(vn) != vn_to_const.end())
+					ins->set_operand(j, Operand(OPERAND_INT_LITERAL, vn_to_const[vn]));
+			}
 		}
 	}
 	return result;

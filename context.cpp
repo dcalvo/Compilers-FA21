@@ -76,10 +76,10 @@ void Context::generate_hcode() {
 		ControlFlowGraph* transformed_cfg = transform.transform_cfg();
 		high_level_iseq = transformed_cfg->create_instruction_sequence();
 	}
-	//if (print_high_level) {
-	//const auto printer = new PrintHighLevelInstructionSequence(high_level_iseq);
-	//printer->print();
-	//}
+	if (print_high_level) {
+		const auto printer = new PrintHighLevelInstructionSequence(high_level_iseq);
+		printer->print();
+	}
 	this->high_level_iseq = high_level_iseq;
 	vregs_used = code_gen.get_vreg_count();
 }

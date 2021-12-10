@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 #include <queue>
+#include <unordered_map>
+
 #include "highlevel.h"
 #include "x86_64.h"
 
@@ -17,9 +19,6 @@ ControlFlowGraph* ControlFlowGraphTransform::get_orig_cfg() {
 
 ControlFlowGraph* ControlFlowGraphTransform::transform_cfg() {
 	auto result = new ControlFlowGraph();
-	// LVN analysis
-	m_lvn = new LVNMap(m_cfg->create_instruction_sequence());
-	m_lvn->execute();
 	auto v = new LiveVregs(m_cfg);
 	v->execute();
 
@@ -33,7 +32,7 @@ ControlFlowGraph* ControlFlowGraphTransform::transform_cfg() {
 		// transform the instructions
 		m_live_set = v->get_fact_at_beginning_of_block(orig);
 		LiveVregsControlFlowGraphPrinter printer(m_cfg, v);
-		//printer.print_basic_block(orig);
+		printer.print_basic_block(orig);
 		InstructionSequence* result_iseq = transform_basic_block(orig);
 
 		// create result basic block
@@ -69,7 +68,193 @@ ControlFlowGraph* ControlFlowGraphTransform::transform_cfg() {
 // High Level CFG Transformation //
 ///////////////////////////////////
 InstructionSequence* HighLevelControlFlowGraphTransform::transform_basic_block(InstructionSequence* iseq) {
-	return iseq;
+	if (iseq->get_length() == 0) return iseq;
+	//////////////////
+	// https://stackoverflow.com/questions/11408934/using-a-stdtuple-as-key-for-stdunordered-map
+	using key_t = std::tuple<int, int, int>;
+	struct key_hash : std::unary_function<key_t, std::size_t> {
+		std::size_t operator()(const key_t& k) const {
+			return std::get<0>(k) ^ std::get<1>(k) ^ std::get<2>(k);
+		}
+	};
+	struct key_equal : public std::binary_function<key_t, key_t, bool> {
+		bool operator()(const key_t& v0, const key_t& v1) const {
+			return (
+				std::get<0>(v0) == std::get<0>(v1) &&
+				std::get<1>(v0) == std::get<1>(v1) &&
+				std::get<2>(v0) == std::get<2>(v1)
+			);
+		}
+	};
+
+	using map_t = std::unordered_map<key_t, int, key_hash, key_equal>;
+	/////////////////
+	auto result = new InstructionSequence();
+	int lvn = 1;
+	std::unordered_map<int, int> const_to_vn;
+	std::unordered_map<int, int> vn_to_const;
+	std::unordered_map<int, int> vreg_to_vn;
+	std::unordered_map<int, std::vector<int>> vn_to_vregs;
+	map_t op_to_vn;
+	for (unsigned i = 0; i < iseq->get_length(); i++) {
+		auto ins = iseq->get_instruction(i)->duplicate();
+		const int opcode = ins->get_opcode();
+		switch (opcode) {
+		case HINS_LOAD_ICONST:
+			{
+				const int ival = ins->get_operand(1).get_int_value();
+				const int vreg = ins->get_operand(0).get_base_reg();
+				// if the left op has been seen before
+				if (vreg_to_vn.find(vreg) != vreg_to_vn.end()) {
+					// erase it from the respective vn's vregs
+					const int left_vn = vreg_to_vn[vreg];
+					std::vector<int>& vregs = vn_to_vregs[left_vn];
+					vregs.erase(std::remove(vregs.begin(), vregs.end(), vreg), vregs.end());
+				}
+				// if we've seen this const before
+				if (const_to_vn.find(ival) != const_to_vn.end()) {
+					// only add it to the vregs that hold it
+					const int vn = const_to_vn[ival];
+					vreg_to_vn[vreg] = vn;
+					vn_to_vregs[vn].push_back(vreg);
+				}
+				else {
+					const int vn = lvn++;
+					const_to_vn[ival] = vn;
+					vn_to_const[vn] = ival;
+					vreg_to_vn[vreg] = vn;
+					vn_to_vregs[vn].push_back(vreg);
+				}
+				result->add_instruction(ins);
+				break;
+			}
+		case HINS_MOV:
+			{
+				const Operand left_op = ins->get_operand(0);
+				const Operand right_op = ins->get_operand(1);
+				const int right_vn = vreg_to_vn.find(right_op.get_base_reg()) != vreg_to_vn.end()
+					                     ? vreg_to_vn[right_op.get_base_reg()]
+					                     : lvn++;
+				// if the left op has been seen before
+				if (vreg_to_vn.find(left_op.get_base_reg()) != vreg_to_vn.end()) {
+					// erase it from the respective vn's vregs
+					const int left_vn = vreg_to_vn[left_op.get_base_reg()];
+					std::vector<int>& vregs = vn_to_vregs[left_vn];
+					vregs.erase(std::remove(vregs.begin(), vregs.end(), left_op.get_base_reg()), vregs.end());
+				}
+				// if the right op has been seen before
+				if (vreg_to_vn.find(right_op.get_base_reg()) != vreg_to_vn.end()) {
+					// replace it with the first instance of the op
+					std::vector<int>& vregs = vn_to_vregs[right_vn];
+					ins->set_operand(1, Operand(OPERAND_VREG, vregs.front()));
+				}
+				vreg_to_vn[left_op.get_base_reg()] = right_vn;
+				vn_to_vregs[right_vn].push_back(left_op.get_base_reg());
+				result->add_instruction(ins);
+				break;
+			}
+		case HINS_LOCALADDR:
+			{
+				const Operand left_op = ins->get_operand(0);
+				// if the left op has been seen before
+				if (vreg_to_vn.find(left_op.get_base_reg()) != vreg_to_vn.end()) {
+					// erase it from the respective vn's vregs
+					const int left_vn = vreg_to_vn[left_op.get_base_reg()];
+					std::vector<int>& vregs = vn_to_vregs[left_vn];
+					vregs.erase(std::remove(vregs.begin(), vregs.end(), left_op.get_base_reg()), vregs.end());
+				}
+				const int left_vn = lvn++;
+				vreg_to_vn[left_op.get_base_reg()] = left_vn;
+				vn_to_vregs[left_vn].push_back(left_op.get_base_reg());
+				result->add_instruction(ins);
+				break;
+			}
+		case HINS_INT_ADD:
+		case HINS_INT_MUL:
+			{
+				const Operand dest_op = ins->get_operand(0);
+				const Operand left_op = ins->get_operand(1);
+				const Operand right_op = ins->get_operand(2);
+				int left_vn, right_vn;
+				// we have to check if the operands are ints specifically due to localaddr computations
+				if (left_op.get_kind() == OPERAND_INT_LITERAL)
+					left_vn = const_to_vn.find(left_op.get_int_value()) != const_to_vn.end()
+						          ? const_to_vn[left_op.get_int_value()]
+						          : lvn++;
+				else
+					left_vn = vreg_to_vn.find(left_op.get_base_reg()) != vreg_to_vn.end()
+						          ? vreg_to_vn[left_op.get_base_reg()]
+						          : lvn++;
+				if (right_op.get_kind() == OPERAND_INT_LITERAL)
+					right_vn = const_to_vn.find(right_op.get_int_value()) != const_to_vn.end()
+						           ? const_to_vn[right_op.get_int_value()]
+						           : lvn++;
+				else
+					right_vn = vreg_to_vn.find(right_op.get_base_reg()) != vreg_to_vn.end()
+						           ? vreg_to_vn[right_op.get_base_reg()]
+						           : lvn++;
+				// if the left op has been seen before
+				if (!vn_to_vregs[left_vn].empty()) {
+					// replace it with the first instance of the op
+					std::vector<int>& vregs = vn_to_vregs[left_vn];
+					ins->set_operand(1, Operand(OPERAND_VREG, vregs.front()));
+				}
+				// if the right op has been seen before
+				if (!vn_to_vregs[right_vn].empty()) {
+					// replace it with the first instance of the op
+					std::vector<int>& vregs = vn_to_vregs[right_vn];
+					ins->set_operand(2, Operand(OPERAND_VREG, vregs.front()));
+				}
+				key_t op_key = std::make_tuple(ins->get_opcode(), std::min(left_vn, right_vn),
+				                               std::max(left_vn, right_vn));
+				const int dest_vn = op_to_vn.find(op_key) != op_to_vn.end() ? op_to_vn[op_key] : lvn++;
+				// if this instruction has not been seen before
+				if (op_to_vn.find(op_key) == op_to_vn.end()) op_to_vn[op_key] = dest_vn;
+				vreg_to_vn[dest_op.get_base_reg()] = dest_vn;
+				vn_to_vregs[dest_vn].push_back(dest_op.get_base_reg());
+				result->add_instruction(ins);
+				break;
+			}
+		case HINS_INT_SUB:
+		case HINS_INT_DIV:
+		case HINS_INT_MOD:
+			{
+				const Operand dest_op = ins->get_operand(0);
+				const Operand left_op = ins->get_operand(1);
+				const Operand right_op = ins->get_operand(2);
+				const int left_vn = vreg_to_vn.find(left_op.get_base_reg()) != vreg_to_vn.end()
+					                    ? vreg_to_vn[left_op.get_base_reg()]
+					                    : lvn++;
+				const int right_vn = vreg_to_vn.find(right_op.get_base_reg()) != vreg_to_vn.end()
+					                     ? vreg_to_vn[right_op.get_base_reg()]
+					                     : lvn++;
+				// if the left op has been seen before
+				if (vreg_to_vn.find(left_op.get_base_reg()) != vreg_to_vn.end()) {
+					// replace it with the first instance of the op
+					std::vector<int>& vregs = vn_to_vregs[left_vn];
+					ins->set_operand(1, Operand(OPERAND_VREG, vregs.front()));
+				}
+				// if the right op has been seen before
+				if (vreg_to_vn.find(right_op.get_base_reg()) != vreg_to_vn.end()) {
+					// replace it with the first instance of the op
+					std::vector<int>& vregs = vn_to_vregs[right_vn];
+					ins->set_operand(2, Operand(OPERAND_VREG, vregs.front()));
+				}
+				key_t op_key = std::make_tuple(ins->get_opcode(), left_vn, right_vn);
+				const int dest_vn = op_to_vn.find(op_key) != op_to_vn.end() ? op_to_vn[op_key] : lvn++;
+				// if this instruction has not been seen before
+				if (op_to_vn.find(op_key) == op_to_vn.end()) op_to_vn[op_key] = dest_vn;
+				vreg_to_vn[dest_op.get_base_reg()] = dest_vn;
+				vn_to_vregs[dest_vn].push_back(dest_op.get_base_reg());
+				result->add_instruction(ins);
+				break;
+			}
+		default:
+			result->add_instruction(ins);
+			break;
+		}
+	}
+	return result;
 }
 
 ///////////////////////////////
@@ -77,120 +262,4 @@ InstructionSequence* HighLevelControlFlowGraphTransform::transform_basic_block(I
 ///////////////////////////////
 InstructionSequence* X86_64ControlFlowGraphTransform::transform_basic_block(InstructionSequence* iseq) {
 	return iseq;
-}
-
-//////////////////////////////
-//// local value number map //
-//////////////////////////////
-int LVNMap::get_value(Operand op) {
-	if (op.get_kind() != OPERAND_VREG) return -1;
-	std::unordered_map<int, int>::const_iterator entry = m_vreg_to_value.find(op.get_base_reg());
-	if (entry == m_vreg_to_value.end()) {
-		int lvn = next_lvn();
-		m_vreg_to_value[op.get_base_reg()] = lvn;
-		m_value_to_vregs[lvn].push_back(op.get_base_reg());
-		return lvn;
-	}
-	return entry->second;
-}
-
-int LVNMap::get_value(lvn_key key) {
-	auto entry = m_key_to_value.find(key);
-	if (entry == m_key_to_value.end()) {
-		int lvn = next_lvn();
-		m_key_to_value[key] = lvn;
-		return lvn;
-	}
-	return entry->second;
-}
-
-void LVNMap::change_value(Operand op, int lvn) {
-	std::unordered_map<int, int>::const_iterator entry = m_vreg_to_value.find(op.get_base_reg());
-	if (entry != m_vreg_to_value.end()) m_vreg_to_value[op.get_base_reg()] = lvn;
-	auto vregs = m_value_to_vregs[lvn];
-	vregs.erase(std::remove(vregs.begin(), vregs.end(), op.get_base_reg()), vregs.end());
-	m_value_to_vregs[lvn].push_back(op.get_base_reg());
-}
-
-Operand LVNMap::get_vreg(Operand op) {
-	std::unordered_map<int, int>::const_iterator entry = m_vreg_to_value.find(op.get_base_reg());
-	if (entry == m_vreg_to_value.end()) return op;
-	int lvn = entry->second;
-	return Operand(OPERAND_VREG, m_value_to_vregs[lvn].at(0));
-}
-
-LVNMap::LVNMap(InstructionSequence* iseq): m_iseq(iseq), m_current_lvn(0) {}
-
-LVNMap::~LVNMap() {}
-
-void LVNMap::execute() {
-	for (unsigned i = 0; i < m_iseq->get_length(); i++) {
-		Instruction* ins = m_iseq->get_instruction(i);
-		int opcode = ins->get_opcode();
-		switch (opcode) {
-		case HINS_INT_ADD:
-		case HINS_INT_MUL:
-			{
-				int lvn_dest = get_value(ins->get_operand(0));
-				int lvn_left = get_value(ins->get_operand(1));
-				//int lvn_right = get_value(ins->get_operand(2));
-				//lvn_key key = std::make_tuple(opcode, std::min(lvn_left, lvn_right), std::max(lvn_left, lvn_right),
-				//                              false);
-				//int lvn = get_value(key);
-				break;
-			}
-			//case HINS_INT_SUB:
-			//case HINS_INT_DIV:
-			//case HINS_INT_MOD:
-			//	{
-			//		int lvn_dest = get_value(ins->get_operand(0));
-			//		int lvn_left = get_value(ins->get_operand(1));
-			//		int lvn_right = get_value(ins->get_operand(2));
-			//		lvn_key key = std::make_tuple(opcode, lvn_left, lvn_right, false);
-			//		int lvn = get_value(key);
-			//		break;
-			//	}
-			//case HINS_INT_NEGATE:
-			//	{
-			//		int lvn_dest = get_value(ins->get_operand(0));
-			//		int lvn_op = get_value(ins->get_operand(1));
-			//		lvn_key key = std::make_tuple(opcode, lvn_op, -1, false);
-			//		int lvn = get_value(key);
-			//		break;
-			//	}
-			//case HINS_LOAD_ICONST:
-			//	{
-			//		int lvn_dest = get_value(ins->get_operand(0));
-			//		break;
-			//	}
-			//case HINS_MOV:
-			//	{
-			//		int lvn_right = get_value(ins->get_operand(1));
-			//		change_value(ins->get_operand(0), lvn_right);
-			//		break;
-			//	}
-		default:
-			break;
-		}
-	}
-}
-
-Instruction* LVNMap::simplify(Instruction* ins) {
-	int operands = ins->get_num_operands();
-	if (operands == 1) {
-		Operand vreg = get_vreg(ins->get_operand(0));
-		return new Instruction(ins->get_opcode(), vreg);
-	}
-	if (operands == 2) {
-		Operand left_vreg = get_vreg(ins->get_operand(0));
-		Operand right_vreg = get_vreg(ins->get_operand(1));
-		return new Instruction(ins->get_opcode(), left_vreg, right_vreg);
-	}
-	if (operands == 3) {
-		Operand dest_vreg = get_vreg(ins->get_operand(0));
-		Operand left_vreg = get_vreg(ins->get_operand(1));
-		Operand right_vreg = get_vreg(ins->get_operand(2));
-		return new Instruction(ins->get_opcode(), dest_vreg, left_vreg, right_vreg);
-	}
-	return ins;
 }

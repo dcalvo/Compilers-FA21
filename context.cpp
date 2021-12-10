@@ -77,8 +77,8 @@ void Context::generate_hcode() {
 		high_level_iseq = transformed_cfg->create_instruction_sequence();
 	}
 	//if (print_high_level) {
-	const auto printer = new PrintHighLevelInstructionSequence(high_level_iseq);
-	printer->print();
+	//const auto printer = new PrintHighLevelInstructionSequence(high_level_iseq);
+	//printer->print();
 	//}
 	this->high_level_iseq = high_level_iseq;
 	vregs_used = code_gen.get_vreg_count();
@@ -88,13 +88,13 @@ void Context::generate_lcode() {
 	LowLevelCodeGen code_gen(symtab, vregs_used);
 	code_gen.generate(high_level_iseq);
 	auto low_level_iseq = code_gen.get_iseq();
-	if (optimize) {
-		X86_64ControlFlowGraphBuilder cfg_builder(low_level_iseq);
-		ControlFlowGraph* cfg = cfg_builder.build();
-		X86_64ControlFlowGraphTransform transform(cfg);
-		ControlFlowGraph* transformed_cfg = transform.transform_cfg();
-		low_level_iseq = transformed_cfg->create_instruction_sequence();
-	}
+	//if (optimize) {
+	//	X86_64ControlFlowGraphBuilder cfg_builder(low_level_iseq);
+	//	ControlFlowGraph* cfg = cfg_builder.build();
+	//	X86_64ControlFlowGraphTransform transform(cfg);
+	//	ControlFlowGraph* transformed_cfg = transform.transform_cfg();
+	//	low_level_iseq = transformed_cfg->create_instruction_sequence();
+	//}
 	PrintX86_64InstructionSequence printer(low_level_iseq);
 	printer.print();
 }

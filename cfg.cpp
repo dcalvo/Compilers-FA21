@@ -137,6 +137,12 @@ Operand Instruction::get_operand(unsigned index) const {
   return m_operands[index];
 }
 
+void Instruction::set_operand(unsigned index, Operand op) {
+  assert(index >= 0);
+  assert(index < m_num_operands);
+  m_operands[index] = op;
+}
+
 void Instruction::set_comment(const std::string &comment) {
   m_comment = comment;
 }

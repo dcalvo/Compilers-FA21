@@ -29,6 +29,7 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 	std::cout << "s_readbuf: .space 8" << '\n';
 	std::cout << "\t.section .text" << '\n';
 	std::cout << "\t.globl main" << '\n';
+	std::cout << "main:" << '\n';
 	// calculate vreg memory locations
 	int offset = symtab->get_offset(); // from start of vreg memory
 	for (int i = 0; i <= vregs_used; i++) {
@@ -38,7 +39,7 @@ void LowLevelCodeGen::generate(InstructionSequence* hl_iseq) {
 	// align to 16 byte boundary
 	offset += offset % 16;
 	auto ins = new Instruction(MINS_SUBQ, Operand(OPERAND_INT_LITERAL, offset), Operand(OPERAND_MREG, MREG_RSP));
-	_iseq->define_label("main");
+	//_iseq->define_label("main");
 	_iseq->add_instruction(ins);
 	// generate program
 	// load constants into memory

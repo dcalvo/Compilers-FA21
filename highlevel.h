@@ -3,6 +3,11 @@
 
 #include "cfg.h"
 
+namespace HighLevel {
+	bool is_def(const Instruction* ins);
+	bool is_use(const Instruction* ins, unsigned operand);
+}
+
 // "High-level" opcodes
 enum HighLevelOpcode {
 	HINS_NOP,
@@ -52,6 +57,7 @@ public:
 	~HighLevelControlFlowGraphPrinter();
 
 	void print_basic_block(BasicBlock* bb) override;
+	std::string format_instruction(const BasicBlock* bb, const Instruction* ins);
 };
 
 #endif // HIGHLEVEL_H

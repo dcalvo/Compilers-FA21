@@ -13,6 +13,9 @@
 #include "x86_64.h"
 #include <iostream>
 
+#include "cfg_transform.h"
+#include "live_vregs.h"
+
 ////////////////////////////////////////////////////////////////////////
 // Classes
 ////////////////////////////////////////////////////////////////////////
@@ -65,12 +68,19 @@ void Context::build_symtab() {
 void Context::generate_hcode() {
 	HighLevelCodeGen code_gen(symtab);
 	code_gen.visit(root);
-	if (print_high_level) {
-		const auto iseq = code_gen.get_iseq();
-		const auto printer = new PrintHighLevelInstructionSequence(iseq);
-		printer->print();
+	auto high_level_iseq = code_gen.get_iseq();
+	if (optimize) {
+		HighLevelControlFlowGraphBuilder cfg_builder(high_level_iseq);
+		ControlFlowGraph* cfg = cfg_builder.build();
+		HighLevelControlFlowGraphTransform transform(cfg);
+		ControlFlowGraph* transformed_cfg = transform.transform_cfg();
+		high_level_iseq = transformed_cfg->create_instruction_sequence();
 	}
-	high_level_iseq = code_gen.get_iseq();
+	//if (print_high_level) {
+	const auto printer = new PrintHighLevelInstructionSequence(high_level_iseq);
+	printer->print();
+	//}
+	this->high_level_iseq = high_level_iseq;
 	vregs_used = code_gen.get_vreg_count();
 }
 
@@ -79,7 +89,11 @@ void Context::generate_lcode() {
 	code_gen.generate(high_level_iseq);
 	auto low_level_iseq = code_gen.get_iseq();
 	if (optimize) {
-		low_level_iseq = new InstructionSequence;
+		X86_64ControlFlowGraphBuilder cfg_builder(low_level_iseq);
+		ControlFlowGraph* cfg = cfg_builder.build();
+		X86_64ControlFlowGraphTransform transform(cfg);
+		ControlFlowGraph* transformed_cfg = transform.transform_cfg();
+		low_level_iseq = transformed_cfg->create_instruction_sequence();
 	}
 	PrintX86_64InstructionSequence printer(low_level_iseq);
 	printer.print();

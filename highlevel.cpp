@@ -1,6 +1,8 @@
 #include <cassert>
 #include "highlevel.h"
 
+#include <iostream>
+
 PrintHighLevelInstructionSequence::PrintHighLevelInstructionSequence(InstructionSequence* ins)
 	: PrintInstructionSequence(ins) {}
 
@@ -60,4 +62,33 @@ HighLevelControlFlowGraphPrinter::~HighLevelControlFlowGraphPrinter() {}
 void HighLevelControlFlowGraphPrinter::print_basic_block(BasicBlock* bb) {
 	PrintHighLevelInstructionSequence print_hliseq(bb);
 	print_hliseq.print();
+}
+
+std::string HighLevelControlFlowGraphPrinter::format_instruction(const BasicBlock* bb, const Instruction* ins) {
+	PrintHighLevelInstructionSequence p(nullptr);
+	return p.format_instruction(ins);
+}
+
+bool HighLevel::is_def(const Instruction* ins) {
+	int opcode = ins->get_opcode();
+	switch (opcode) {
+	case HINS_INT_ADD:
+	case HINS_INT_SUB:
+	case HINS_INT_MUL:
+	case HINS_INT_DIV:
+	case HINS_INT_MOD:
+	case HINS_INT_NEGATE:
+	case HINS_LOAD_ICONST:
+	case HINS_MOV:
+	case HINS_LOAD_INT:
+	case HINS_READ_INT:
+	case HINS_LOCALADDR:
+		return ins->get_operand(0).get_kind() == OPERAND_VREG;
+	default:
+		return false;
+	}
+}
+
+bool HighLevel::is_use(const Instruction* ins, unsigned operand) {
+	return ins->get_operand(operand).get_kind() == OPERAND_VREG;
 }

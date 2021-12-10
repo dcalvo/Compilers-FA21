@@ -102,11 +102,13 @@
     <ClCompile Include="ast.cpp" />
     <ClCompile Include="astvisitor.cpp" />
     <ClCompile Include="cfg.cpp" />
+    <ClCompile Include="cfg_transform.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="cpputil.cpp" />
     <ClCompile Include="grammar_symbols.c" />
     <ClCompile Include="highlevel.cpp" />
     <ClCompile Include="highlevelcodegen.cpp" />
+    <ClCompile Include="live_vregs.cpp" />
     <ClCompile Include="lowlevelcodegen.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="node.cpp" />
@@ -122,11 +124,13 @@
     <ClInclude Include="ast.h" />
     <ClInclude Include="astvisitor.h" />
     <ClInclude Include="cfg.h" />
+    <ClInclude Include="cfg_transform.h" />
     <ClInclude Include="context.h" />
     <ClInclude Include="cpputil.h" />
     <ClInclude Include="grammar_symbols.h" />
     <ClInclude Include="highlevel.h" />
     <ClInclude Include="highlevelcodegen.h" />
+    <ClInclude Include="live_vregs.h" />
     <ClInclude Include="lowlevelcodegen.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="parse.tab.h" />

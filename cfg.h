@@ -145,6 +145,8 @@ public:
 	unsigned get_num_operands() const;
 	Operand get_operand(unsigned index) const;
 
+	void set_operand(unsigned index, Operand op);
+
 	// more convenient notation for referring to operand
 	Operand operator[](unsigned index) const {
 		assert(index < m_num_operands);
@@ -183,6 +185,10 @@ private:
 public:
 	using iterator = std::vector<Instruction*>::iterator;
 	using const_iterator = std::vector<Instruction*>::const_iterator;
+	using const_reverse_iterator = std::vector<Instruction*>::const_reverse_iterator;
+
+	const_reverse_iterator crbegin() const { return m_instr_seq.crbegin(); }
+	const_reverse_iterator crend() const { return m_instr_seq.crend(); }
 
 	InstructionSequence();
 
@@ -376,6 +382,9 @@ public:
 
 	// get total number of BasicBlocks (including entry and exit)
 	unsigned get_num_blocks() const { return static_cast<unsigned>(m_basic_blocks.size()); }
+
+	// get block by index
+	BasicBlock* get_block(const unsigned id) const { return m_basic_blocks.at(id); }
 
 	// Get pointer to the dedicated empty entry block
 	BasicBlock* get_entry_block() const;

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="dcalvo2_HTML/style.css" />
+    <title>Assignment 5: Better code generation</title>
+  </head>
+  <body>
+    <div id="center">
+      <h1>Assignment 5: Better code generation</h1>
+      <h2>Project Info</h2>
+      <ul>
+        <li>David Calvo</li>
+        <li>dcalvo2</li>
+        <li>
+          MSVC @ C++20 / Visual Studio 2019 (Community Edition) / Windows 10
+        </li>
+        <li>0 Late Days used</li>
+      </ul>
+
+      <h2>Table of Contents</h2>
+      <ul>
+        <li>
+          <a href="#implemented"
+            >General discussion of optimizations implemented</a
+          >
+        </li>
+        <li><a href="#evaluation">Analysis and experimental evaluation</a></li>
+      </ul>
+
+      <h2>Implementation Details</h2>
+      <p>
+        All emitted code examples are from <code>input/arith03.in</code> unless
+        otherwise stated.
+      </p>
+      <h3 id="implemented">General discussion of optimizations implemented</h3>
+      <p>
+        Optimizations implemented were primarily focused on the high-level
+        intermediate representation. These optimizations broadly include
+        attempts at local value numbering, register allocation, constant
+        folding, and high-level peephole optimizations. I struggled with this
+        assignment more than any of the previous ones so each optimization is in
+        varying degrees of completion. I will start with what I consider to be
+        the most successful and complete optimizations first then move onto
+        possible areas of improvement.
+      </p>
+      <p>
+        The first optimization I attempted to implement was local value
+        numbering. Using the provided code as a framework, I created a series of
+        data structures that allowed me to assign each unique runtime value a
+        value number. While this did not immediately change the high-level IR or
+        emitted target code, this did provide me with the following data
+        structures in order to implement further optimizations:
+      </p>
+      <pre>
+          <code>
+            std::unordered_map&lt;int, int> const_to_vn;
+            std::unordered_map&lt;int, int> vn_to_const;
+            std::unordered_map&lt;int, int> vreg_to_vn;
+            std::unordered_map&lt;int, std::vector&lt;int>> vn_to_vregs;
+          </code>
+      </pre>
+      <p>
+        Using these data structures, I had all of the information I needed to
+        attempt constant propagation. This simply consisted of checking each
+        source operand of an operation and determining if it was previously
+        discovered to be a constant value. If so, I replace the source operand
+        with an integer literal operand. This transformed the old high-level IR:
+        <pre>
+            <code>
+                ldci vr1, $27               /* ldci vr1, $27 */
+                ldci vr2, $5                /* ldci vr2, $5 */
+                subi vr3, vr1, vr2          /* subi vr3, vr1, vr2 */
+                ldci vr4, $3                /* ldci vr4, $3 */
+                subi vr5, vr3, vr4          /* subi vr5, vr3, vr4 */
+                mov vr0, vr5                /* mov vr0, vr5 */
+                writei vr0                  /* writei vr0 */
+            </code>
+        </pre>
+        <p>into this new high-level IR:</p>
+        <pre>
+            <code>
+                subi vr3, $27, $5           /* subi vr3, vr1, vr2 */
+                subi vr5, vr3, $3           /* subi vr5, vr3, vr4 */
+                mov vr0, vr5                /* mov vr0, vr5 */
+                writei vr0                  /* writei vr0 */
+            </code>
+        </pre>
+      </p>
+      <p>We can see that this is a net -3 instruction gain. High-level load-constant instructions are removed by a cleanup step after local value numbers are assigned to each operand and instructions. By looking at the emitted target code, we can also see a partial register allocation optimization strategy:</p>
+      <pre>
+          <code>
+            movq $27, %rax              /* subi vr3, vr1, vr2 */
+            subq $5, %rax
+            movq %rax, 24(%rsp)
+            movq 24(%rsp), %rax         /* subi vr5, vr3, vr4 */
+            subq $3, %rax
+            movq %rax, 40(%rsp)
+            movq 40(%rsp), %r10         /* mov vr0, vr5 */
+          </code>
+      </pre>
+      <p>If possible, a machine register will be allocated for a virtual register provided that one is available. My implementation of this optimization is incomplete as I did not manage to implement spill and restore operations. What this means for the optimization process is that machine registers are allocated once per block. Once the registers are filled, the backup memory references allocated for each virtual register are used. This means that the optimization is more effective for smaller blocks in which the total number of virtual registers is less than the total number of available machine registers.</p>
+      <p>Numerous peephole optimizations were also made to my high-level IR. These primarily focused on optimizing how virtual registers were used and when they were created for each instruction. Here is an example in which the high-level read-int instruction was optimized to produce one fewer virtual register reference:</p>
+      <pre>
+          <code>
+            ldci vr1, $0
+            readi vr1                   /* readi vr1 */
+            mov vr0, vr1                /* mov vr0, vr1 */
+          </code>
+      </pre>
+      <p>was transformed into</p>
+      <pre>
+        <code>
+          readi vr0                   /* readi vr0 */
+        </code>
+    </pre>
+
+    <h3 id="evaluation">Analysis and experimental evaluation</h3>
+    <p>I am running these programs on a Ryzen 9 5900x.</p>
+    <p>I decided to use <code>input/array20.in</code> as my benchmarking program. Unfortunately, I did not manage to massively increase the performance of my compiler. Here are the averaged time results from the unoptimized and optimized outputs across 3 different runs:</p>
+    <pre>
+        <code>
+            Unoptimized                     Optimized
+            real    0m1.277s                real    0m1.256s
+            user    0m1.277s                user    0m1.246s        ~5% performance gain on avg.
+            sys     0m0.000s                sys     0m0.010s
+        </code>
+    </pre>
+    <p>As shown, the difference in performance is minor but demonstrable. I believe that the high clock speed of my processor may also make the absolute difference in unoptimized and optimized times less significant. Additionally, I'm not sure why the <code>sys</code> time increased for optimizer programs, but it did by about 0.010s consistently. Regardless, I believe that the primary source of the performance increase is due to the removal of redundant move operations. Prior to my optimmization attempts, my emitted target code would naively copy constants into virtual register references (i.e. memory) every time. This meant that every time my address calculation multiplied an index by a type size, two virtual registers were allocated for the index and size constants. Those two high-level instructions would then emit 2 more low-level instructions to load the constant into memory then copy the memory into the register being used. Through local value numbering and constant propagation, each address reference eliminates 4 unnecessary instructions (among other areas of improvement).
+    </p>
+    <p>I also attempted to benchmark the partial register allocation implementation (among my other optimization attempts) but the <code>time</code> program showed no difference. I think there are two reasons to this. One, my implementation is only partial thus the possible performance gain is limited. However, the performance gain should still be detectable especially in smaller blocks in which repeated access to memory would dwarf the time it takes to repeatedly access a machine register. The second reason I think a difference was difficult to detect (in absolute terms) was because of my hardware. I'm not sure whether sending a value to memory in the program sends it to RAM or disk, but I have 3600MHz DDR4 RAM and a M.2 SSD. I believe that both pieces of hardware are fast enough that an unoptimized program may only take an additional very, very small amount of time over an optimized program. Thus, the small performance gain I might've received from my partial register allocation optimization may be obfuscated by the accuracy of the <code>time</code> program.</p>
+    <p>Finally, there are of course further optimizations that I would have liked to have implemented but did not have the time to do so. One major source of redundant commands that would've been easy to peephole is the output of operations. For example, in my earlier code that was optimized due to constant propagation:</p>
+    <pre>
+        <code>
+            subi vr3, $27, $5           /* subi vr3, vr1, vr2 */
+            subi vr5, vr3, $3           /* subi vr5, vr3, vr4 */
+            mov vr0, vr5                /* mov vr0, vr5 */
+            writei vr0                  /* writei vr0 */
+        </code>
+    </pre>
+    <p>In this case, it is obvious to see that <code>vr0</code> and <code>vr5</code> are redundant. In combination with my other attempts, it might be easy to peephole this interaction by making the subtract instruction write to a machine register and then have the write instruction read from that register, but the peephole optimization becomes trickier if the write instruction were in another block. A global live register analysis could likely help me determine whether the subtract operation should store the result in a more permanent location or if it should be outputted to a temporary register allocated for the block. Each instruction that creates defines a virtual register (arithmetic, reads, assignments) causes this additional move instruction which makes me think that it would be a sizeable performance increase on top of a correct register allocation implementation.</p>
+    <p>Ultimately, there are major improvements still left to be done. I believe that the number one performance increase my code could benefit from is a proper and full implementation of register allocation. In larger blocks, machine registers are quickly exhausted and the instruction access pattern quickly returns to 100% memory. This results in a massive number of instructions solely for computing memory addresses (and the additional redundant instructions for each computation as described above). There are also always low-level peephole optimizations to be done as well. My compiler has no knowledge of arithmetic identities or instruction strength-reduction, so instructions that add 0 to an integer or multiply an operand by 8 (instead of logical shifting left) will still be emitted in the final program.</p>
+</div>
+  </body>
+</html>

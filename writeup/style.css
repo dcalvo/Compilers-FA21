@@ -1,0 +1,17 @@
+img {
+  padding: 15px;
+}
+
+body {
+  background-color: #f6f6ef;
+}
+
+h3 {
+  padding-top: 30px;
+  border-top: 1px solid black;
+  width: 85%;
+}
+
+#center {
+  padding-left: 15%;
+}

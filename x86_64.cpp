@@ -73,3 +73,33 @@ std::string PrintX86_64InstructionSequence::get_mreg_name(int regnum) {
 	}
 	return std::string(s);
 }
+
+X86_64ControlFlowGraphBuilder::X86_64ControlFlowGraphBuilder(InstructionSequence* iseq)
+	: ControlFlowGraphBuilder(iseq) {}
+
+X86_64ControlFlowGraphBuilder::~X86_64ControlFlowGraphBuilder() {}
+
+// It's necessary to override this method for x86-64, because call instructions
+// have a single label as an Operand, but for our purposes, should not be considered
+// as a branch.
+bool X86_64ControlFlowGraphBuilder::is_branch(Instruction* ins) {
+	if (ins->get_opcode() == MINS_CALL) {
+		return false;
+	}
+	return ControlFlowGraphBuilder::is_branch(ins);
+}
+
+bool X86_64ControlFlowGraphBuilder::falls_through(Instruction* ins) {
+	// only the jmp instruction does not fall through
+	return ins->get_opcode() != MINS_JMP;
+}
+
+X86_64ControlFlowGraphPrinter::X86_64ControlFlowGraphPrinter(ControlFlowGraph* cfg)
+	: ControlFlowGraphPrinter(cfg) {}
+
+X86_64ControlFlowGraphPrinter::~X86_64ControlFlowGraphPrinter() {}
+
+void X86_64ControlFlowGraphPrinter::print_basic_block(BasicBlock* bb) {
+	PrintX86_64InstructionSequence print_iseq(bb);
+	print_iseq.print();
+}

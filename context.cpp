@@ -13,6 +13,9 @@
 #include "x86_64.h"
 #include <iostream>
 
+#include "cfg_transform.h"
+#include "live_vregs.h"
+
 ////////////////////////////////////////////////////////////////////////
 // Classes
 ////////////////////////////////////////////////////////////////////////
@@ -21,6 +24,7 @@ struct Context {
 private:
 	bool print_symbol_table = false;
 	bool print_high_level = false;
+	bool optimize = false;
 	Node* root;
 	SymbolTable* symtab;
 	InstructionSequence* high_level_iseq;
@@ -49,8 +53,9 @@ Context::~Context() {}
 void Context::set_flag(char flag) {
 	if (flag == 's') print_symbol_table = true;
 	else if (flag == 'i') print_high_level = true;
+	else if (flag == 'o') optimize = true;
 	else
-		assert(false); // we only support 's' right now
+		assert(false);
 }
 
 void Context::build_symtab() {
@@ -63,19 +68,33 @@ void Context::build_symtab() {
 void Context::generate_hcode() {
 	HighLevelCodeGen code_gen(symtab);
 	code_gen.visit(root);
+	auto high_level_iseq = code_gen.get_iseq();
+	if (optimize) {
+		HighLevelControlFlowGraphBuilder cfg_builder(high_level_iseq);
+		ControlFlowGraph* cfg = cfg_builder.build();
+		HighLevelControlFlowGraphTransform transform(cfg);
+		ControlFlowGraph* transformed_cfg = transform.transform_cfg();
+		high_level_iseq = transformed_cfg->create_instruction_sequence();
+	}
 	if (print_high_level) {
-		const auto iseq = code_gen.get_iseq();
-		const auto printer = new PrintHighLevelInstructionSequence(iseq);
+		const auto printer = new PrintHighLevelInstructionSequence(high_level_iseq);
 		printer->print();
 	}
-	high_level_iseq = code_gen.get_iseq();
+	this->high_level_iseq = high_level_iseq;
 	vregs_used = code_gen.get_vreg_count();
 }
 
 void Context::generate_lcode() {
 	LowLevelCodeGen code_gen(symtab, vregs_used);
 	code_gen.generate(high_level_iseq);
-	const auto low_level_iseq = code_gen.get_iseq();
+	auto low_level_iseq = code_gen.get_iseq();
+	//if (optimize) {
+	//	X86_64ControlFlowGraphBuilder cfg_builder(low_level_iseq);
+	//	ControlFlowGraph* cfg = cfg_builder.build();
+	//	X86_64ControlFlowGraphTransform transform(cfg);
+	//	ControlFlowGraph* transformed_cfg = transform.transform_cfg();
+	//	low_level_iseq = transformed_cfg->create_instruction_sequence();
+	//}
 	PrintX86_64InstructionSequence printer(low_level_iseq);
 	printer.print();
 }

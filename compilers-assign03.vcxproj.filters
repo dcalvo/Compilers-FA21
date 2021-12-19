@@ -69,6 +69,12 @@
     <ClCompile Include="lowlevelcodegen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cfg_transform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="live_vregs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ast.h">
@@ -120,6 +126,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lowlevelcodegen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg_transform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="live_vregs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
